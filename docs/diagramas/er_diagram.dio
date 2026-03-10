@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-03-09T12:00:00.000Z" agent="copilot" etag="1" version="20.0.3" type="device">
+  <diagram id="er1" name="ER Diagram">
+    <![CDATA[
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="2" value="&lt;b&gt;Order&lt;/b&gt;&lt;br/&gt;orderNumber: String&lt;br/&gt;locationId: ObjectId&lt;br/&gt;tableId: ObjectId&lt;br/&gt;type,status,total" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4C2;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="240" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="3" value="&lt;b&gt;OrderItem&lt;/b&gt;&lt;br/&gt;menuItemId: ObjectId&lt;br/&gt;name,quantity,unitPrice,status,stationId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C2E7FF;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="320" y="40" width="240" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="4" value="&lt;b&gt;Modifier&lt;/b&gt;&lt;br/&gt;name,priceAdjust,qty" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFC2;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="620" y="40" width="220" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="5" value="&lt;b&gt;Station&lt;/b&gt;&lt;br/&gt;name,code,defaultPrepTime,kdsDeviceIds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFDCDC;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="320" y="220" width="240" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="6" value="&lt;b&gt;KDSDevice&lt;/b&gt;&lt;br/&gt;deviceKey,type,lastSeen,stationIds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8DFFF;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="620" y="220" width="220" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="7" value="&lt;b&gt;Printer&lt;/b&gt;&lt;br/&gt;connection(template),type,templateId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="240" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="8" value="&lt;b&gt;Table&lt;/b&gt;&lt;br/&gt;label,seats,zone" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="240" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="9" value="&lt;b&gt;OrderEvent&lt;/b&gt;&lt;br/&gt;orderId,eventType,payload,actorId,timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5FF;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="320" y="360" width="240" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Relaciones / edges -->
+        <mxCell id="e1" edge="1" source="2" target="3" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e2" edge="1" source="3" target="4" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e3" edge="1" source="3" target="5" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e4" edge="1" source="5" target="6" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e5" edge="1" source="2" target="7" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e6" edge="1" source="2" target="8" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e7" edge="1" source="2" target="9" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#000000">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+    ]]>
+  </diagram>
+</mxfile>

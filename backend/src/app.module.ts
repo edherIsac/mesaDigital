@@ -7,10 +7,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { UsersAdminModule } from './users/admin/users-admin.module';
-import { StudiosModule } from './studios/studios.module';
-import { PackagesModule } from './packages/packages.module';
-import { SessionsModule } from './sessions/sessions.module';
-import { PhotosModule } from './photos/photos.module';
+import { OrdersModule } from './orders/orders.module';
+import { KdsModule } from './kds/kds.module';
 
 @Module({
   imports: [
@@ -28,10 +26,9 @@ import { PhotosModule } from './photos/photos.module';
     AuthModule,
     UsersModule,
     UsersAdminModule,
-    StudiosModule,
-    PackagesModule,
-    SessionsModule,
-    PhotosModule,
+    // Orders + KDS
+    OrdersModule,
+    KdsModule,
   ],
   providers: [
     // Apply ThrottlerGuard globally to all routes
