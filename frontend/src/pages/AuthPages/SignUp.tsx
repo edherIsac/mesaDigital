@@ -6,8 +6,8 @@ export default function SignUp() {
   return (
     <>
       <PageMeta
-        title="Crear cuenta | TailAdmin — Panel de administración (React.js y Tailwind CSS)"
-        description="Página de registro del panel TailAdmin — plantilla de administración con React.js y Tailwind CSS"
+        title="Crear cuenta | mesaDigital — Panel de administración (React.js y Tailwind CSS)"
+        description="Página de registro del panel mesaDigital — plantilla de administración con React.js y Tailwind CSS"
       />
       <AuthLayout>
         <SignUpForm />
