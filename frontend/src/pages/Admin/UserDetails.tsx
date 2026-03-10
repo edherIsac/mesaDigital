@@ -11,6 +11,7 @@ const ROLE_STYLES: Record<string, string> = {
   ADMIN: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
   WAITER: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
   KITCHEN: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+  CASHIER: "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-400",
 };
 
 function Avatar({ name }: { name: string }) {
@@ -212,6 +213,7 @@ export default function UserDetails() {
                       <option value="SUPERVISOR">SUPERVISOR</option>
                       <option value="WAITER">WAITER</option>
                       <option value="KITCHEN">KITCHEN</option>
+                      <option value="CASHIER">CASHIER</option>
                     </select>
                   </div>
 

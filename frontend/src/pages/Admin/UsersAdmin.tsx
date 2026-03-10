@@ -84,6 +84,7 @@ export default function UsersAdmin() {
               <option value="SUPERVISOR">SUPERVISOR</option>
               <option value="WAITER">WAITER</option>
               <option value="KITCHEN">KITCHEN</option>
+              <option value="CASHIER">CASHIER</option>
             </select>
           </div>
           <div className="sm:col-span-3">

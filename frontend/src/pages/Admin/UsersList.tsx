@@ -9,7 +9,7 @@ type User = {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "SUPERVISOR" | "WAITER" | "KITCHEN" | string;
+  role: "ADMIN" | "SUPERVISOR" | "WAITER" | "KITCHEN" | "CASHIER" | string;
   createdAt?: string;
 };
 
@@ -22,6 +22,8 @@ const ROLE_STYLES: Record<string, string> = {
     "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
   KITCHEN:
     "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+  CASHIER:
+    "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-400",
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -137,6 +139,7 @@ export default function UsersList() {
               <option value="SUPERVISOR">SUPERVISOR</option>
               <option value="WAITER">WAITER</option>
               <option value="KITCHEN">KITCHEN</option>
+              <option value="CASHIER">CASHIER</option>
             </select>
           </div>
         </div>

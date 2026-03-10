@@ -8,6 +8,7 @@ export enum UserRole {
   SUPERVISOR = 'SUPERVISOR',
   WAITER = 'WAITER',
   KITCHEN = 'KITCHEN',
+  CASHIER = 'CASHIER',
 }
 
 @Schema()
@@ -26,6 +27,9 @@ export class User {
 
   @Prop({ default: Date.now })
   createdAt: Date;
+
+  @Prop({ default: Date.now })
+  updatedAt: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

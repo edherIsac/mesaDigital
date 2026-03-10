@@ -40,9 +40,10 @@ export class UsersAdminController {
 
   @Post()
   async create(@Body() dto: CreateUserDto) {
-    // Only allow creating ADMIN or SUPERVISOR users
-    if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.SUPERVISOR) {
-      throw new BadRequestException('Only ADMIN or SUPERVISOR roles can be created');
+    // Allow only roles defined in the UserRole enum
+    const allowedRoles = Object.values(UserRole) as string[];
+    if (!allowedRoles.includes(dto.role as unknown as string)) {
+      throw new BadRequestException(`Invalid role. Allowed roles: ${allowedRoles.join(', ')}`);
     }
 
     const existing = await this.usersService.findByEmail(dto.email);
@@ -79,8 +80,9 @@ export class UsersAdminController {
     if (dto.name) updateData.name = dto.name;
     if (dto.email) updateData.email = dto.email;
     if (dto.role) {
-      if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.SUPERVISOR) {
-        throw new BadRequestException('Only ADMIN or SUPERVISOR roles are allowed');
+      const allowedRoles = Object.values(UserRole) as string[];
+      if (!allowedRoles.includes(dto.role as unknown as string)) {
+        throw new BadRequestException(`Invalid role. Allowed roles: ${allowedRoles.join(', ')}`);
       }
       updateData.role = dto.role;
     }
