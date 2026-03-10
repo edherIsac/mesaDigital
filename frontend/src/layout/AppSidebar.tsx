@@ -111,7 +111,7 @@ const AppSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -128,7 +128,9 @@ const AppSidebar: React.FC = () => {
         const u = JSON.parse(raw);
         setUserRole(u?.role ?? null);
       }
-    } catch {}
+    } catch (e) {
+      console.error("Error parsing user from localStorage:", e);
+    }
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === "user") {
@@ -149,33 +151,36 @@ const AppSidebar: React.FC = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const isActive = useCallback((path: string) => currentPath === path, [
-    currentPath,
-  ]);
+  const isActive = useCallback(
+    (path: string) => currentPath === path,
+    [currentPath],
+  );
 
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const mainItems =
-        userRole === "SUPER" || userRole === "ADMIN"
+      const mainItems: NavItem[] =
+        userRole === "ADMIN"
           ? [
               ...navItems,
-              { icon: <UserCircleIcon />, name: "Usuarios", path: "/admin/users" },
+              {
+                icon: <UserCircleIcon />,
+                name: "Usuarios",
+                path: "/admin/users",
+              },
             ]
           : navItems;
       const items = menuType === "main" ? mainItems : othersItems;
       items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
+        nav.subItems?.forEach((subItem) => {
+          if (isActive(subItem.path)) {
+            setOpenSubmenu({
+              type: menuType as "main" | "others",
+              index,
+            });
+            submenuMatched = true;
+          }
+        });
       });
     });
 
@@ -250,7 +255,7 @@ const AppSidebar: React.FC = () => {
               )}
             </button>
           ) : (
-              nav.path && (
+            nav.path && (
               <Link
                 to={nav.path}
                 className={`menu-item group ${
@@ -339,8 +344,8 @@ const AppSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -399,10 +404,14 @@ const AppSidebar: React.FC = () => {
               </h2>
               {(() => {
                 const mainItems =
-                  userRole === "SUPER" || userRole === "ADMIN"
+                  userRole === "ADMIN"
                     ? [
                         ...navItems,
-                        { icon: <UserCircleIcon />, name: "Usuarios", path: "/admin/users" },
+                        {
+                          icon: <UserCircleIcon />,
+                          name: "Usuarios",
+                          path: "/admin/users",
+                        },
                       ]
                     : navItems;
                 return renderMenuItems(mainItems, "main");
@@ -433,8 +442,8 @@ const AppSidebar: React.FC = () => {
         </nav>
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
       </div>
-      </aside>
-    );
-  };
+    </aside>
+  );
+};
 
 export default AppSidebar;

@@ -31,7 +31,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    // Fixed root superuser (hardcoded credentials)
+    // Fixed root admin user (hardcoded credentials)
     if (dto.email === 'root@test.com') {
       if (dto.password !== '123.Hola')
         throw new UnauthorizedException('Invalid credentials');
@@ -39,7 +39,7 @@ export class AuthService {
       const payload = {
         sub: 'root',
         email: 'root@test.com',
-        role: 'SUPER',
+        role: 'ADMIN',
         name: 'root',
       };
       const accessToken = this.jwtService.sign(payload);
@@ -50,7 +50,7 @@ export class AuthService {
           id: 'root',
           name: 'root',
           email: 'root@test.com',
-          role: 'SUPER',
+          role: 'ADMIN',
           createdAt: new Date().toISOString(),
         },
       };

@@ -69,21 +69,21 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="admin/users" element={
             <RequireAuth>
-              <RequireRole roles={["SUPER", "ADMIN"]}>
+              <RequireRole roles={["ADMIN"]}>
                 <UsersList />
               </RequireRole>
             </RequireAuth>
           } />
           <Route path="admin/user/details/:id" element={
             <RequireAuth>
-              <RequireRole roles={["SUPER", "ADMIN"]}>
+              <RequireRole roles={["ADMIN"]}>
                 <UserDetails />
               </RequireRole>
             </RequireAuth>
           } />
           <Route path="admin/user/new" element={
             <RequireAuth>
-              <RequireRole roles={["SUPER", "ADMIN"]}>
+              <RequireRole roles={["ADMIN"]}>
                 <UserDetails />
               </RequireRole>
             </RequireAuth>

@@ -7,9 +7,10 @@ import Button from "../../components/ui/button/Button";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 
 const ROLE_STYLES: Record<string, string> = {
-  SUPER: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
+  SUPERVISOR: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
   ADMIN: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-  STUDIO: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  WAITER: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  KITCHEN: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
 };
 
 function Avatar({ name }: { name: string }) {
@@ -32,7 +33,7 @@ export default function UserDetails() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("STUDIO");
+  const [role, setRole] = useState("WAITER");
   const [createdAt, setCreatedAt] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -50,7 +51,7 @@ export default function UserDetails() {
           const data = res?.data;
           setName(data.name ?? "");
           setEmail(data.email ?? "");
-          setRole(data.role ?? "STUDIO");
+          setRole(data.role ?? "WAITER");
           setCreatedAt(data.createdAt);
         } catch (err: any) {
           setError(err?.message ?? "Error al cargar usuario");
@@ -198,19 +199,21 @@ export default function UserDetails() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="role">Rol <span className="text-red-500">*</span></Label>
-                <select
-                  id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  disabled={loading}
-                  className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
-                >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="STUDIO">STUDIO</option>
-                </select>
-              </div>
+                  <div>
+                    <Label htmlFor="role">Rol <span className="text-red-500">*</span></Label>
+                    <select
+                      id="role"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      disabled={loading}
+                      className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    >
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="SUPERVISOR">SUPERVISOR</option>
+                      <option value="WAITER">WAITER</option>
+                      <option value="KITCHEN">KITCHEN</option>
+                    </select>
+                  </div>
 
               <div className="sm:col-span-2 flex items-center gap-3 pt-2">
                 <Button type="submit" size="sm" disabled={loading}>

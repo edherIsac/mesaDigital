@@ -20,7 +20,7 @@ import { UserRole } from '../schemas/user.schema';
 
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.SUPER, UserRole.ADMIN)
+@Roles(UserRole.ADMIN)
 export class UsersAdminController {
   constructor(private usersService: UsersService) {}
 
@@ -40,9 +40,9 @@ export class UsersAdminController {
 
   @Post()
   async create(@Body() dto: CreateUserDto) {
-    // Only allow creating ADMIN or STUDIO users
-    if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.STUDIO) {
-      throw new BadRequestException('Only ADMIN or STUDIO roles can be created');
+    // Only allow creating ADMIN or SUPERVISOR users
+    if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.SUPERVISOR) {
+      throw new BadRequestException('Only ADMIN or SUPERVISOR roles can be created');
     }
 
     const existing = await this.usersService.findByEmail(dto.email);
@@ -79,8 +79,8 @@ export class UsersAdminController {
     if (dto.name) updateData.name = dto.name;
     if (dto.email) updateData.email = dto.email;
     if (dto.role) {
-      if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.STUDIO) {
-        throw new BadRequestException('Only ADMIN or STUDIO roles are allowed');
+      if (dto.role !== UserRole.ADMIN && dto.role !== UserRole.SUPERVISOR) {
+        throw new BadRequestException('Only ADMIN or SUPERVISOR roles are allowed');
       }
       updateData.role = dto.role;
     }

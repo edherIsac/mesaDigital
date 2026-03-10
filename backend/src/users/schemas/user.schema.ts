@@ -5,8 +5,9 @@ export type UserDocument = User & Document;
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  STUDIO = 'STUDIO',
-  SUPER = 'SUPER',
+  SUPERVISOR = 'SUPERVISOR',
+  WAITER = 'WAITER',
+  KITCHEN = 'KITCHEN',
 }
 
 @Schema()
@@ -20,7 +21,7 @@ export class User {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ type: String, enum: UserRole, default: UserRole.STUDIO })
+  @Prop({ type: String, enum: UserRole, default: UserRole.WAITER })
   role: UserRole;
 
   @Prop({ default: Date.now })

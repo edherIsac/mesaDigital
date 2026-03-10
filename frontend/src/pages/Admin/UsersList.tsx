@@ -9,17 +9,19 @@ type User = {
   id: string;
   name: string;
   email: string;
-  role: "SUPER" | "ADMIN" | "STUDIO" | string;
+  role: "ADMIN" | "SUPERVISOR" | "WAITER" | "KITCHEN" | string;
   createdAt?: string;
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  SUPER:
+  SUPERVISOR:
     "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
   ADMIN:
     "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-  STUDIO:
+  WAITER:
     "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  KITCHEN:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -131,9 +133,10 @@ export default function UsersList() {
               className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
             >
               <option value="ALL">Todos los roles</option>
-              <option value="SUPER">SUPER</option>
               <option value="ADMIN">ADMIN</option>
-              <option value="STUDIO">STUDIO</option>
+              <option value="SUPERVISOR">SUPERVISOR</option>
+              <option value="WAITER">WAITER</option>
+              <option value="KITCHEN">KITCHEN</option>
             </select>
           </div>
         </div>

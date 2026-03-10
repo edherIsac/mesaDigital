@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
 import { API_BASE, API_PREFIX } from './config'
 
 const baseURL = `${API_BASE}${API_PREFIX}`
@@ -15,14 +15,42 @@ client.interceptors.request.use(
   (config) => {
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-      if (token) {
-        if (!config.headers) config.headers = {}
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        config.headers.Authorization = `Bearer ${token}`
+      const url = config.url ?? ''
+
+      // Normalize the request path (works with relative and absolute URLs)
+      let path = url
+      try {
+        const parsed = new URL(url, baseURL)
+        path = parsed.pathname
+      } catch {
+        if (!path.startsWith('/')) path = `/${path}`
       }
-    } catch (e) {
-      // ignore
+
+      // Public auth routes (don't add Authorization)
+      const isAuthRoute = /^\/auth\/(login|register|refresh|forgot-password|reset-password)(?:$|[/?#])/i.test(
+        path,
+      )
+
+      const invalidToken = !token || token === 'undefined' || token === 'null'
+
+      if (isAuthRoute || invalidToken) {
+        if (config.headers instanceof AxiosHeaders) {
+          config.headers.delete('Authorization')
+        } else if (config.headers) {
+          delete (config.headers as Record<string, string>)['Authorization']
+        }
+        return config
+      }
+
+      if (!config.headers) config.headers = new AxiosHeaders()
+
+      if (config.headers instanceof AxiosHeaders) {
+        config.headers.set('Authorization', `Bearer ${token}`)
+      } else {
+        ;(config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
+      }
+    } catch {
+      // ignore errors from localStorage or URL parsing
     }
     return config
   },

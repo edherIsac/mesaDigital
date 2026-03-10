@@ -81,7 +81,9 @@ export default function UsersAdmin() {
             <label className="block mb-1 text-sm font-medium">Rol</label>
             <select value={role} onChange={(e) => setRole(e.target.value)} className="h-11 w-full rounded-lg border px-4 text-sm">
               <option value="ADMIN">ADMIN</option>
-              <option value="STUDIO">STUDIO</option>
+              <option value="SUPERVISOR">SUPERVISOR</option>
+              <option value="WAITER">WAITER</option>
+              <option value="KITCHEN">KITCHEN</option>
             </select>
           </div>
           <div className="sm:col-span-3">
