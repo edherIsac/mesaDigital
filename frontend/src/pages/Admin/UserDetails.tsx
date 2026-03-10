@@ -47,7 +47,7 @@ export default function UserDetails() {
         setFetchLoading(true);
         setError(null);
         try {
-          const res = await fetch(`${base}/api/admin/users/${id}`, {
+          const res = await fetch(`${base}/api/v1/admin/users/${id}`, {
             headers: { Authorization: token ? `Bearer ${token}` : "" },
           });
           if (!res.ok) throw new Error(`Error ${res.status}`);
@@ -80,7 +80,7 @@ export default function UserDetails() {
       const body: Record<string, string> = { name, email, role };
       if (password) body.password = password;
 
-      const url = isNew ? `${base}/api/admin/users` : `${base}/api/admin/users/${id}`;
+      const url = isNew ? `${base}/api/v1/admin/users` : `${base}/api/v1/admin/users/${id}`;
       const method = isNew ? "POST" : "PATCH";
 
       const res = await fetch(url, {

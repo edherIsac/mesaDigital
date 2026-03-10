@@ -3,6 +3,9 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import mongoose from 'mongoose';
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 function maskMongoUri(uri?: string) {
   if (!uri) return 'not configured';
@@ -22,7 +25,8 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api');
+  const globalPrefix = 'api/v1';
+  app.setGlobalPrefix(globalPrefix);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -33,7 +37,6 @@ async function bootstrap() {
   );
 
   app.enableCors();
-
   const config = app.get(ConfigService);
   const portStr = config?.get<string>('PORT') ?? process.env.PORT;
   const port = portStr ? Number(portStr) : 3000;
@@ -42,6 +45,41 @@ async function bootstrap() {
     config?.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development';
   const mongodbUri =
     config?.get<string>('MONGODB_URI') ?? process.env.MONGODB_URI;
+
+  // --- Swagger / OpenAPI setup ---
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Mesa Digital API')
+    .setDescription('Documentación de la API de Mesa Digital')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'JWT-auth',
+    )
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  // ensure the spec contains a server entry pointing to the running API base
+  (swaggerDocument as any).servers = [
+    { url: `http://${host}:${port}/${globalPrefix}` },
+  ];
+  SwaggerModule.setup(`${globalPrefix}/docs`, app, swaggerDocument, {
+    swaggerOptions: {
+      filter: true,
+      persistAuthorization: true,
+    },
+  });
+
+  // Write OpenAPI JSON to backend root
+  try {
+    const backendSpecPath = join(process.cwd(), 'openapi.json');
+    writeFileSync(backendSpecPath, JSON.stringify(swaggerDocument, null, 2));
+    logger.log(`📄 OpenAPI spec written to ${backendSpecPath}`, 'Swagger');
+  } catch (err) {
+    logger.warn(
+      `Could not write OpenAPI spec to backend path: ${err?.message}`,
+      'Swagger',
+    );
+  }
 
   // Log DB URI (masked) and attach mongoose listeners
   if (mongodbUri) {
@@ -73,7 +111,7 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(
-    `🚀 Application running on http://${host}:${port}/api`,
+    `🚀 Application running on http://${host}:${port}/api/v1`,
     'Bootstrap',
   );
   logger.log(`🌐 Environment: ${env}`, 'Bootstrap');

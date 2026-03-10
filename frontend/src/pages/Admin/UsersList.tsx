@@ -70,7 +70,7 @@ export default function UsersList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${base}/api/admin/users`, {
+      const res = await fetch(`${base}/api/v1/admin/users`, {
         headers: { Authorization: token ? `Bearer ${token}` : "" },
       });
       if (!res.ok) throw new Error(`Error ${res.status}`);

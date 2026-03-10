@@ -285,7 +285,11 @@
     "contact": {}
   },
   "tags": [],
-  "servers": [],
+  "servers": [
+    {
+      "url": "http://localhost:3200/api/v1"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "JWT-auth": {

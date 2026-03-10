@@ -28,7 +28,7 @@ export default function UsersAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${base}/api/admin/users`, {
+      const res = await fetch(`${base}/api/v1/admin/users`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : "",
         },
@@ -60,7 +60,7 @@ export default function UsersAdmin() {
 
     try {
       setLoading(true);
-      const res = await fetch(`${base}/api/admin/users`, {
+      const res = await fetch(`${base}/api/v1/admin/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
