@@ -1,13 +1,74 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
+import api from "../../api/client";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [fname, setFname] = useState("");
+  const [lname, setLname] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError(null);
+    if (!fname || !email || !password) {
+      setError("Nombre, correo y contraseña son obligatorios");
+      return;
+    }
+    if (!isChecked) {
+      setError("Debes aceptar los Términos y Condiciones");
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError("Por favor ingresa un correo válido");
+      return;
+    }
+    if (String(password).length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Register
+      await api.post("/auth/register", {
+        name: `${fname} ${lname}`.trim(),
+        email,
+        password,
+      });
+
+      // Auto-login after register
+      const loginRes = await api.post("/auth/login", { email, password });
+      const data = loginRes?.data;
+      if (data?.accessToken) {
+        localStorage.setItem("token", data.accessToken);
+      }
+      if (data?.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      let message = err?.message ?? "Error de red";
+      if (typeof err === "string") message = err;
+      else if (Array.isArray(err?.message)) message = err.message.join("; ");
+      else if (typeof err?.message === "string") message = err.message;
+      else if (typeof err?.error === "string") message = err.error;
+      else if (err?.message) message = String(err.message);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -73,8 +134,13 @@ export default function SignUpForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
+                {error && (
+                  <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
                   <div className="sm:col-span-1">
@@ -86,6 +152,8 @@ export default function SignUpForm() {
                       id="fname"
                       name="fname"
                       placeholder="Ingresa tu nombre"
+                      value={fname}
+                      onChange={(e) => setFname(e.target.value)}
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -98,6 +166,8 @@ export default function SignUpForm() {
                       id="lname"
                       name="lname"
                       placeholder="Ingresa tu apellido"
+                      value={lname}
+                      onChange={(e) => setLname(e.target.value)}
                     />
                   </div>
                 </div>
@@ -111,6 +181,8 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="ejemplo@correo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -122,6 +194,8 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Ingresa tu contraseña"
                       type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -155,8 +229,12 @@ export default function SignUpForm() {
                 </div>
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Crear cuenta
+                  <button
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? "Creando cuenta..." : "Crear cuenta"}
                   </button>
                 </div>
               </div>

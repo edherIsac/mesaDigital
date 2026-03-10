@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 
 // Usage:
 //   node scripts/fetch-openapi.js [url] [outPath]
@@ -12,9 +13,9 @@ const out = path.isAbsolute(outPathArg) ? outPathArg : path.join(process.cwd(), 
 
 const run = async () => {
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    const body = await res.text();
+    const res = await axios.get(url, { responseType: 'text' });
+    if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const body = res.data;
     await fs.promises.mkdir(path.dirname(out), { recursive: true });
     await fs.promises.writeFile(out, body, 'utf8');
     console.log(`Saved OpenAPI JSON from ${url} -> ${out}`);

@@ -95,7 +95,16 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+      const u = JSON.parse(raw);
+      return u?.role ?? null;
+    } catch {
+      return null;
+    }
+  });
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -413,7 +422,12 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {(() => {
+                const othersToRender = userRole
+                  ? othersItems.filter((it) => it.name !== "Authentication")
+                  : othersItems;
+                return renderMenuItems(othersToRender, "others");
+              })()}
             </div>
           </div>
         </nav>

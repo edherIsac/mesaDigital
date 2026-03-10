@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import api from "../../api/client";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Button from "../../components/ui/button/Button";
@@ -38,8 +39,6 @@ export default function UserDetails() {
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const base = import.meta.env.VITE_API_URL ?? "http://localhost:3100";
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
     if (!isNew) {
@@ -47,11 +46,8 @@ export default function UserDetails() {
         setFetchLoading(true);
         setError(null);
         try {
-          const res = await fetch(`${base}/api/v1/admin/users/${id}`, {
-            headers: { Authorization: token ? `Bearer ${token}` : "" },
-          });
-          if (!res.ok) throw new Error(`Error ${res.status}`);
-          const data = await res.json();
+          const res = await api.get(`/admin/users/${id}`);
+          const data = res?.data;
           setName(data.name ?? "");
           setEmail(data.email ?? "");
           setRole(data.role ?? "STUDIO");
@@ -80,21 +76,10 @@ export default function UserDetails() {
       const body: Record<string, string> = { name, email, role };
       if (password) body.password = password;
 
-      const url = isNew ? `${base}/api/v1/admin/users` : `${base}/api/v1/admin/users/${id}`;
-      const method = isNew ? "POST" : "PATCH";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const b = await res.json().catch(() => null);
-        throw new Error(b?.message ?? b?.error ?? `Error ${res.status}`);
+      if (isNew) {
+        await api.post(`/admin/users`, body);
+      } else {
+        await api.patch(`/admin/users/${id}`, body);
       }
 
       navigate("/admin/users");

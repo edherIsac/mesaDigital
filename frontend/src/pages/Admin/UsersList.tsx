@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import api from "../../api/client";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
@@ -63,18 +64,13 @@ export default function UsersList() {
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
   const navigate = useNavigate();
-  const base = import.meta.env.VITE_API_URL ?? "http://localhost:3100";
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${base}/api/v1/admin/users`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const data = await res.json();
+      const res = await api.get("/admin/users");
+      const data = res?.data;
       setUsers(data || []);
     } catch (err: any) {
       setError(err?.message ?? "Error al cargar usuarios");

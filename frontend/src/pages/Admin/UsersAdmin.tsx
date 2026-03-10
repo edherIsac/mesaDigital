@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "../../api/client";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
 
@@ -20,23 +21,14 @@ export default function UsersAdmin() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("ADMIN");
 
-  const base = import.meta.env.VITE_API_URL ?? "http://localhost:3100";
-
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${base}/api/v1/admin/users`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`Error: ${res.status}`);
-      }
-      const data = await res.json();
+      const res = await api.get("/admin/users");
+      const data = res?.data;
       setUsers(data || []);
     } catch (err: any) {
       setError(err?.message ?? "Error al obtener usuarios");
@@ -60,21 +52,8 @@ export default function UsersAdmin() {
 
     try {
       setLoading(true);
-      const res = await fetch(`${base}/api/v1/admin/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify({ name, email, password, role }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        const message = body?.message ?? body?.error ?? `Error ${res.status}`;
-        throw new Error(message);
-      }
-
-      const created = await res.json();
+      const res = await api.post("/admin/users", { name, email, password, role });
+      const created = res?.data;
       setUsers((s) => [created, ...s]);
       setName("");
       setEmail("");
