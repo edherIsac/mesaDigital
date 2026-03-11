@@ -33,6 +33,7 @@ async function run() {
       email,
       password: hashed,
       role: UserRole.ADMIN,
+      active: true,
     } as any);
 
     logger.log(`Usuario admin creado: ${email} (id: ${user._id})`);

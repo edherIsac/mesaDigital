@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
-import api from "../../api/client";
+import UserService from "./User.service";
+import { User } from "./User.interface";
 import Input from "../../components/form/input/InputField";
 import Button from "../../components/ui/button/Button";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  createdAt?: string;
-};
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,17 +14,15 @@ export default function UsersAdmin() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("ADMIN");
 
-  
-
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/admin/users");
-      const data = res?.data;
+      const data = await UserService.fetchUsers();
       setUsers(data || []);
-    } catch (err: any) {
-      setError(err?.message ?? "Error al obtener usuarios");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || "Error al obtener usuarios");
     } finally {
       setLoading(false);
     }
@@ -52,15 +43,16 @@ export default function UsersAdmin() {
 
     try {
       setLoading(true);
-      const res = await api.post("/admin/users", { name, email, password, role });
-      const created = res?.data;
-      setUsers((s) => [created, ...s]);
+
+      const created = await UserService.createUser({ name, email, password, role });
+      if (created) setUsers((s) => [created, ...s]);
       setName("");
       setEmail("");
       setPassword("");
       setRole("ADMIN");
-    } catch (err: any) {
-      setError(err?.message ?? "Error al crear usuario");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || "Error al crear usuario");
     } finally {
       setLoading(false);
     }
@@ -73,13 +65,34 @@ export default function UsersAdmin() {
       <section className="p-4 bg-white rounded-lg border border-gray-200">
         <h3 className="font-medium mb-3">Crear usuario</h3>
         {error && <p className="text-sm text-red-500 mb-2">{error}</p>}
-        <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Correo" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Input placeholder="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <form
+          onSubmit={handleCreate}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        >
+          <Input
+            placeholder="Nombre"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            placeholder="Correo"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            placeholder="Contraseña"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <div className="sm:col-span-3">
             <label className="block mb-1 text-sm font-medium">Rol</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="h-11 w-full rounded-lg border px-4 text-sm">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="h-11 w-full rounded-lg border px-4 text-sm"
+            >
               <option value="ADMIN">ADMIN</option>
               <option value="SUPERVISOR">SUPERVISOR</option>
               <option value="WAITER">WAITER</option>
@@ -116,7 +129,11 @@ export default function UsersAdmin() {
                     <td className="px-3 py-2">{u.name}</td>
                     <td className="px-3 py-2">{u.email}</td>
                     <td className="px-3 py-2">{u.role}</td>
-                    <td className="px-3 py-2">{u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}</td>
+                    <td className="px-3 py-2">
+                      {u.createdAt
+                        ? new Date(u.createdAt).toLocaleString()
+                        : "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

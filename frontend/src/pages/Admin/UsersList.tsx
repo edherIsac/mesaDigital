@@ -1,35 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import api from "../../api/client";
+import UserService from "./User.service";
+import { User } from "./User.interface";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: "ADMIN" | "SUPERVISOR" | "WAITER" | "KITCHEN" | "CASHIER" | string;
-  createdAt?: string;
-};
+// Using `User` from User.interface.ts
 
 const ROLE_STYLES: Record<string, string> = {
   SUPERVISOR:
     "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-400",
-  ADMIN:
-    "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+  ADMIN: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
   WAITER:
     "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
   KITCHEN:
     "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
-  CASHIER:
-    "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-400",
+  CASHIER: "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-400",
 };
 
 function RoleBadge({ role }: { role: string }) {
-  const cls = ROLE_STYLES[role] ?? "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300";
+  const cls =
+    ROLE_STYLES[role] ??
+    "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300";
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}
+    >
       {role}
     </span>
   );
@@ -51,9 +48,12 @@ function Avatar({ name }: { name: string }) {
 function SkeletonRow() {
   return (
     <tr className="border-t border-gray-100 dark:border-gray-800 animate-pulse">
-      {[1, 2, 3, 4].map((i) => (
+      {[1, 2, 3, 4, 5].map((i) => (
         <td key={i} className="px-4 py-3">
-          <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" style={{ width: `${60 + i * 10}%` }} />
+          <div
+            className="h-4 rounded bg-gray-200 dark:bg-gray-700"
+            style={{ width: `${60 + i * 10}%` }}
+          />
         </td>
       ))}
     </tr>
@@ -73,11 +73,11 @@ export default function UsersList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/admin/users");
-      const data = res?.data;
-      setUsers(data || []);
-    } catch (err: any) {
-      setError(err?.message ?? "Error al cargar usuarios");
+      const normalized = await UserService.fetchUsers();
+      setUsers(normalized);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al cargar usuarios";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -99,6 +99,11 @@ export default function UsersList() {
     });
   }, [users, q, roleFilter]);
 
+  // Debug: print filtered users when it changes
+  // eslint-disable-next-line no-console
+  useEffect(() => {
+  }, [filtered]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -108,7 +113,9 @@ export default function UsersList() {
             Usuarios
           </h2>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            {loading ? "Cargando..." : `${filtered.length} de ${users.length} usuarios`}
+            {loading
+              ? "Cargando..."
+              : `${filtered.length} de ${users.length} usuarios`}
           </p>
         </div>
         <Button onClick={() => navigate("/admin/user/new")} size="sm">
@@ -158,25 +165,65 @@ export default function UsersList() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-white/[0.02]">
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Usuario</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Correo</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Rol</th>
-                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Creado</th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                  Usuario
+                </th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                  Correo
+                </th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                  Rol
+                </th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                  Creado
+                </th>
+                <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
+                  Activo
+                </th>
               </tr>
             </thead>
             <tbody>
-              {loading &&
-                [1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
+              {loading && [1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-12 text-center text-gray-400 dark:text-gray-500"
+                  >
                     <div className="flex flex-col items-center gap-2">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="opacity-40">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="opacity-40"
+                      >
+                        <path
+                          d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                        <circle
+                          cx="9"
+                          cy="7"
+                          r="4"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                        />
+                        <path
+                          d="M23 21v-2a4 4 0 0 0-3-3.87"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M16 3.13a4 4 0 0 1 0 7.75"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
                       </svg>
                       <span>No se encontraron usuarios</span>
                     </div>
@@ -187,22 +234,66 @@ export default function UsersList() {
               {!loading &&
                 filtered.map((u) => (
                   <tr
-                    key={u.id}
+                    key={u.id ?? (u as unknown as Record<string, string>)._id}
+                    onClick={() =>
+                      navigate(
+                        `/admin/user/details/${u.id ?? (u as unknown as Record<string, string>)._id}`
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(
+                          `/admin/user/details/${u.id ?? (u as unknown as Record<string, string>)._id}`
+                        );
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     className="border-t border-gray-100 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.03] cursor-pointer"
-                    onClick={() => navigate(`/admin/user/details/${u.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={u.name || "?"} />
-                        <span className="font-medium text-gray-800 dark:text-white/90">{u.name}</span>
+                        <span className="font-medium text-gray-800 dark:text-white/90">
+                          {u.name}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      {u.email}
+                    </td>
                     <td className="px-4 py-3">
                       <RoleBadge role={u.role} />
                     </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-500">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
+                      {u.createdAt
+                        ? new Date(u.createdAt).toLocaleDateString()
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          // optimistic update
+                          const prev = users;
+                          setUsers((s) =>
+                            s.map((x) =>
+                              x.id === u.id ? { ...x, active: !x.active } : x
+                            )
+                          );
+                          try {
+                            await UserService.updateUser(u.id, {
+                              active: !u.active,
+                            });
+                          } catch {
+                            setUsers(prev);
+                          }
+                        }}
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${u.active ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'}`}
+                      >
+                        {u.active ? "Activo" : "Inactivo"}
+                      </button>
                     </td>
                   </tr>
                 ))}

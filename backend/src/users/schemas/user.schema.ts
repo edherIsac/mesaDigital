@@ -30,6 +30,12 @@ export class User {
 
   @Prop({ default: Date.now })
   updatedAt: Date;
+
+  @Prop({ default: true })
+  active: boolean;
+
+  @Prop({ type: String, default: null })
+  avatarUrl?: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

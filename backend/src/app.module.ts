@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { UsersAdminModule } from './users/admin/users-admin.module';
 import { OrdersModule } from './orders/orders.module';
 import { KdsModule } from './kds/kds.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { KdsModule } from './kds/kds.module';
     AuthModule,
     UsersModule,
     UsersAdminModule,
+    ProductsModule,
     // Orders + KDS
     OrdersModule,
     KdsModule,
