@@ -30,7 +30,18 @@ import { ConfigService } from '@nestjs/config';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class UsersAdminController {
-  constructor(private usersService: UsersService, private config: ConfigService) {}
+  constructor(private usersService: UsersService, private config: ConfigService) {
+    // Configure cloudinary once when controller initializes
+    try {
+      cloudinary.config({
+        cloud_name: this.config.get<string>('CLOUDINARY_CLOUD_NAME') ?? process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: this.config.get<string>('CLOUDINARY_API_KEY') ?? process.env.CLOUDINARY_API_KEY,
+        api_secret: this.config.get<string>('CLOUDINARY_API_SECRET') ?? process.env.CLOUDINARY_API_SECRET,
+      });
+    } catch (err) {
+      // ignore - may be configured via env already
+    }
+  }
 
   @Get()
   async list() {
@@ -38,7 +49,23 @@ export class UsersAdminController {
     return users.map((u: any) => {
       const obj = typeof u.toObject === 'function' ? u.toObject() : u;
       const { password, ...rest } = obj;
-      return { ...rest, id: obj._id };
+      // generate dynamic avatar URL if we have a public id
+      const avatarPublicId = obj.avatarPublicId ?? null;
+      let avatarUrl = rest.avatarUrl ?? null;
+      if (avatarPublicId) {
+        try {
+          avatarUrl = cloudinary.url(avatarPublicId, {
+            width: 80,
+            height: 80,
+            crop: 'fill',
+            gravity: 'face',
+            quality: 'auto',
+            fetch_format: 'auto',
+            dpr: 'auto',
+          });
+        } catch {}
+      }
+      return { ...rest, id: obj._id, avatarUrl };
     });
   }
 
@@ -49,8 +76,24 @@ export class UsersAdminController {
     const user = await this.usersService.findById(id);
     if (!user) throw new NotFoundException('User not found');
     // remove password if present
-    const { password, ...rest } = user.toObject();
-    return rest;
+    const obj = user.toObject();
+    const { password, ...rest } = obj;
+    const avatarPublicId = obj.avatarPublicId ?? null;
+    let avatarUrl = rest.avatarUrl ?? null;
+    if (avatarPublicId) {
+      try {
+        avatarUrl = cloudinary.url(avatarPublicId, {
+          width: 160,
+          height: 160,
+          crop: 'fill',
+          gravity: 'face',
+          quality: 'auto',
+          fetch_format: 'auto',
+          dpr: 'auto',
+        });
+      } catch {}
+    }
+    return { ...rest, avatarUrl };
   }
 
   @Post()
@@ -163,9 +206,10 @@ export class UsersAdminController {
     });
 
     const url = uploadResult?.secure_url ?? uploadResult?.url ?? null;
+    const publicId = uploadResult?.public_id ?? null;
     if (!url) throw new BadGatewayException('Upload did not return a URL');
 
-    const updated = await this.usersService.update(id, { avatarUrl: url } as any);
+    const updated = await this.usersService.update(id, { avatarUrl: url, avatarPublicId: publicId } as any);
     if (!updated) throw new NotFoundException('User not found after avatar update');
 
     return { url };

@@ -32,15 +32,35 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, src }: { name: string; src?: string | null }) {
+  const [imgSrc, setImgSrc] = useState<string | undefined>(src ?? undefined);
+
+  useEffect(() => {
+    setImgSrc(src ?? undefined);
+  }, [src]);
+
   const initials = name
     .split(" ")
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
+
+  if (imgSrc) {
+    return (
+      <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
+        <img
+          src={imgSrc}
+          alt={name || "avatar"}
+          className="object-cover h-full w-full"
+          onError={() => setImgSrc(undefined)}
+        />
+      </div>
+    );
+  }
+
   return (
     <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-semibold dark:bg-brand-500/20 dark:text-brand-400">
-      {initials}
+      {initials || "?"}
     </span>
   );
 }
@@ -254,7 +274,7 @@ export default function UsersList() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar name={u.name || "?"} />
+                        <Avatar name={u.name || "?"} src={(u as any).avatarUrl} />
                         <span className="font-medium text-gray-800 dark:text-white/90">
                           {u.name}
                         </span>

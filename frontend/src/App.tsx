@@ -9,6 +9,8 @@ import Home from "./pages/Dashboard/Home";
 import Splash from "./pages/Splash";
 import UsersList from "./pages/Admin/UsersList";
 import UserDetails from "./pages/Admin/UserDetails";
+import ProductsList from "./pages/Admin/ProductsList";
+import ProductDetails from "./pages/Admin/ProductDetails";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -85,6 +87,27 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["ADMIN"]}>
                 <UserDetails />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="admin/products" element={
+            <RequireAuth>
+              <RequireRole roles={["ADMIN"]}>
+                <ProductsList />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="admin/product/details/:id" element={
+            <RequireAuth>
+              <RequireRole roles={["ADMIN"]}>
+                <ProductDetails />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="admin/product/new" element={
+            <RequireAuth>
+              <RequireRole roles={["ADMIN"]}>
+                <ProductDetails />
               </RequireRole>
             </RequireAuth>
           } />

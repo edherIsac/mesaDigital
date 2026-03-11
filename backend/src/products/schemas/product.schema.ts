@@ -31,6 +31,10 @@ export class Product {
   @Prop()
   coverImage?: string;
 
+  // Cloudinary public_id for dynamic URL generation
+  @Prop()
+  coverImagePublicId?: string;
+
   @Prop({ type: [String], default: [] })
   tags?: string[];
 
