@@ -1,5 +1,5 @@
 import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
-import { Allergen } from '../schemas/product.schema';
+import { Allergen, Category } from '../schemas/product.schema';
 
 export class CreateProductDto {
   @IsString()
@@ -17,9 +17,10 @@ export class CreateProductDto {
   @IsOptional()
   sku?: string;
 
-  @IsString()
+  @IsArray()
+  @IsEnum(Category, { each: true })
   @IsOptional()
-  category?: string;
+  categories?: Category[];
 
   @IsBoolean()
   @IsOptional()
@@ -33,10 +34,6 @@ export class CreateProductDto {
   @IsUrl()
   @IsOptional()
   coverImage?: string;
-
-  @IsArray()
-  @IsOptional()
-  tags?: string[];
 
   @IsArray()
   @IsOptional()

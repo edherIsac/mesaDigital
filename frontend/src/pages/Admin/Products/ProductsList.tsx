@@ -5,6 +5,7 @@ import { Product } from "./Product.interface";
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
+import { Category, CATEGORY_LABELS } from "../../../constants/categories";
 
 function ProductImage({ name, src }: { name: string; src?: string | null }) {
   const [imgError, setImgError] = useState(false);
@@ -51,7 +52,7 @@ export default function ProductsList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<Category | "ALL">("ALL");
 
   useEffect(() => {
     setLoading(true);
@@ -66,11 +67,13 @@ export default function ProductsList() {
   }, []);
 
   const categories = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<Category>();
     products.forEach((p) => {
-      if (p.category) set.add(p.category);
+      (p.categories ?? []).forEach((c) => set.add(c));
     });
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) =>
+      CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], "es"),
+    );
   }, [products]);
 
   const filtered = useMemo(() => {
@@ -80,9 +83,12 @@ export default function ProductsList() {
         !q ||
         p.name.toLowerCase().includes(q) ||
         (p.sku ?? "").toLowerCase().includes(q) ||
-        (p.category ?? "").toLowerCase().includes(q);
+        (p.categories ?? []).some((c) =>
+          CATEGORY_LABELS[c].toLowerCase().includes(q),
+        );
       const matchesCategory =
-        categoryFilter === "ALL" || p.category === categoryFilter;
+        categoryFilter === "ALL" ||
+        (p.categories ?? []).includes(categoryFilter as Category);
       return matchesSearch && matchesCategory;
     });
   }, [products, search, categoryFilter]);
@@ -151,7 +157,7 @@ export default function ProductsList() {
             <option value="ALL">Todas las categorías</option>
             {categories.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {CATEGORY_LABELS[c]}
               </option>
             ))}
           </select>
@@ -248,7 +254,13 @@ export default function ProductsList() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {p.category ?? (
+                      {(p.categories ?? []).length > 0 ? (
+                        <span>
+                          {(p.categories ?? [])
+                            .map((c) => CATEGORY_LABELS[c])
+                            .join(", ")}
+                        </span>
+                      ) : (
                         <span className="text-gray-300 dark:text-gray-600">
                           —
                         </span>

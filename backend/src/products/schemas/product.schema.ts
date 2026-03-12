@@ -1,6 +1,69 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export enum Category {
+  // Antojitos & tortería
+  TACOS = 'tacos',
+  TORTAS = 'tortas',
+  QUESADILLAS = 'quesadillas',
+  TAMALES = 'tamales',
+  ANTOJITOS = 'antojitos',
+  TOSTADAS = 'tostadas',
+  GORDITAS = 'gorditas',
+  TLAYUDAS = 'tlayudas',
+  ENFRIJOLADAS = 'enfrijoladas',
+  ENCHILADAS = 'enchiladas',
+  // Sopas & caldos
+  SOPAS = 'sopas',
+  CALDOS = 'caldos',
+  POZOLE = 'pozole',
+  MENUDO = 'menudo',
+  // Carnes & proteínas
+  CARNES = 'carnes',
+  AVES = 'aves',
+  MARISCOS = 'mariscos',
+  PESCADOS = 'pescados',
+  // Guarniciones & ensaladas
+  ENSALADAS = 'ensaladas',
+  GUARNICIONES = 'guarniciones',
+  ARROCES = 'arroces',
+  // Comida internacional
+  PIZZAS = 'pizzas',
+  HAMBURGUESAS = 'hamburguesas',
+  PASTA = 'pasta',
+  SUSHI = 'sushi',
+  // Desayunos
+  DESAYUNOS = 'desayunos',
+  HUEVOS = 'huevos',
+  HOTCAKES = 'hotcakes',
+  // Botanas
+  BOTANAS = 'botanas',
+  ALITAS = 'alitas',
+  NACHOS = 'nachos',
+  // Postres & panadería
+  POSTRES = 'postres',
+  HELADOS = 'helados',
+  PASTELES = 'pasteles',
+  PANADERIA = 'panaderia',
+  DULCES = 'dulces',
+  // Bebidas
+  BEBIDAS_FRIAS = 'bebidas_frias',
+  BEBIDAS_CALIENTES = 'bebidas_calientes',
+  JUGOS_LICUADOS = 'jugos_licuados',
+  AGUAS_FRESCAS = 'aguas_frescas',
+  REFRESCOS = 'refrescos',
+  CERVEZAS = 'cervezas',
+  VINOS = 'vinos',
+  COCTELERIA = 'cocteleria',
+  MEZCAL_TEQUILA = 'mezcal_tequila',
+  // Especiales
+  MENU_INFANTIL = 'menu_infantil',
+  MENU_DEL_DIA = 'menu_del_dia',
+  COMBOS = 'combos',
+  VEGANO = 'vegano',
+  SIN_GLUTEN = 'sin_gluten',
+}
+
 export enum Allergen {
   GLUTEN = 'gluten',
   CRUSTACEOS = 'crustaceos',
@@ -34,8 +97,8 @@ export class Product {
   @Prop()
   sku?: string;
 
-  @Prop()
-  category?: string;
+  @Prop({ type: [String], enum: Object.values(Category), default: [] })
+  categories?: Category[];
 
   @Prop({ default: true })
   available?: boolean;
@@ -51,9 +114,6 @@ export class Product {
   // Cloudinary public_id for dynamic URL generation
   @Prop()
   coverImagePublicId?: string;
-
-  @Prop({ type: [String], default: [] })
-  tags?: string[];
 
   // Simple modifiers structure: [{ name, price }]
   @Prop({ type: [Object], default: [] })

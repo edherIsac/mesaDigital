@@ -1,5 +1,7 @@
 import api from "../../../api/client";
 import { RawProduct, Product, ApiResponse, normalizeProduct } from "./Product.interface";
+import { Allergen } from "../../../constants/allergens";
+import { Category } from "../../../constants/categories";
 
 export async function fetchProducts(): Promise<Product[]> {
   const res = await api.get<RawProduct[]>("/products");
@@ -24,14 +26,11 @@ export interface CreateProductDto {
   price: number;
   description?: string;
   sku?: string;
-  category?: string;
+  categories?: Category[];
   available?: boolean;
   menuOrder?: number;
-  prepTime?: number;
   calories?: number;
-  allergens?: string[];
-  tags?: string[];
-  onKds?: boolean;
+  allergens?: Allergen[];
 }
 
 export interface UpdateProductDto {
@@ -39,15 +38,12 @@ export interface UpdateProductDto {
   price?: number;
   description?: string;
   sku?: string;
-  category?: string;
+  categories?: Category[];
   available?: boolean;
   coverImage?: string;
   menuOrder?: number;
-  prepTime?: number;
   calories?: number;
-  allergens?: string[];
-  tags?: string[];
-  onKds?: boolean;
+  allergens?: Allergen[];
 }
 
 export async function createProduct(body: CreateProductDto): Promise<Product | null> {

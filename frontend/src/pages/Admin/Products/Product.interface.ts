@@ -1,4 +1,5 @@
 import { Allergen } from '../../../constants/allergens';
+import { Category } from '../../../constants/categories';
 
 export interface Product {
   id: string;
@@ -11,7 +12,6 @@ export interface Product {
   coverImage?: string | null;
   coverImagePublicId?: string | null;
   images?: string[];
-  tags?: string[];
   menuOrder?: number;
   calories?: number;
   allergens?: Allergen[];
@@ -26,12 +26,11 @@ export interface RawProduct {
   description?: string;
   price?: number;
   sku?: string;
-  category?: string;
+  categories?: Category[];
   available?: boolean;
   coverImage?: string | null;
   coverImagePublicId?: string | null;
   images?: string[];
-  tags?: string[];
   menuOrder?: number;
   calories?: number;
   allergens?: Allergen[];
@@ -52,12 +51,11 @@ export function normalizeProduct(raw: RawProduct): Product {
     description: raw.description,
     price: raw.price ?? 0,
     sku: raw.sku,
-    category: raw.category,
+    categories: (raw.categories ?? []) as Category[],
     available: raw.available ?? true,
     coverImage: raw.coverImage ?? null,
     coverImagePublicId: raw.coverImagePublicId ?? null,
     images: raw.images ?? [],
-    tags: raw.tags ?? [],
     menuOrder: raw.menuOrder ?? 0,
     calories: raw.calories,
     allergens: (raw.allergens ?? []) as Allergen[],

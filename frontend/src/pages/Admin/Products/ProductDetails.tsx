@@ -7,6 +7,10 @@ import ProductService, {
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import Button from "../../../components/ui/button/Button";
+import AllergenPicker from "../../../components/form/AllergenPicker";
+import CategoryPicker from "../../../components/form/CategoryPicker";
+import { Allergen } from "../../../constants/allergens";
+import { Category } from "../../../constants/categories";
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
@@ -18,14 +22,11 @@ export default function ProductDetails() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [sku, setSku] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [menuOrder, setMenuOrder] = useState("");
-  const [prepTime, setPrepTime] = useState("");
   const [calories, setCalories] = useState("");
   const [available, setAvailable] = useState(true);
-  const [onKds, setOnKds] = useState(true);
-  const [tags, setTags] = useState("");
-  const [allergens, setAllergens] = useState("");
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
 
   // Image state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -53,14 +54,11 @@ export default function ProductDetails() {
           setDescription(p.description ?? "");
           setPrice(p.price !== undefined ? String(p.price) : "");
           setSku(p.sku ?? "");
-          setCategory(p.category ?? "");
+          setCategories((p.categories ?? []) as Category[]);
           setMenuOrder(p.menuOrder !== undefined ? String(p.menuOrder) : "0");
-          setPrepTime(p.prepTime !== undefined ? String(p.prepTime) : "0");
           setCalories(p.calories !== undefined ? String(p.calories) : "");
           setAvailable(p.available ?? true);
-          setOnKds(p.onKds ?? true);
-          setTags((p.tags ?? []).join(", "));
-          setAllergens((p.allergens ?? []).join(", "));
+          setAllergens((p.allergens ?? []) as Allergen[]);
           setImagePreview(p.coverImage ?? undefined);
           setCreatedAt(p.createdAt);
         })
@@ -125,24 +123,11 @@ export default function ProductDetails() {
           price: priceNum,
           description: description.trim() || undefined,
           sku: sku.trim() || undefined,
-          category: category.trim() || undefined,
+          categories,
           available,
-          onKds,
           menuOrder: menuOrder !== "" ? parseInt(menuOrder, 10) : 0,
-          prepTime: prepTime !== "" ? parseInt(prepTime, 10) : 0,
           calories: calories !== "" ? parseInt(calories, 10) : undefined,
-          tags: tags
-            ? tags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)
-            : [],
-          allergens: allergens
-            ? allergens
-                .split(",")
-                .map((a) => a.trim())
-                .filter(Boolean)
-            : [],
+          allergens,
         };
         const created = await ProductService.createProduct(body);
         savedId = created?.id;
@@ -152,24 +137,11 @@ export default function ProductDetails() {
           price: priceNum,
           description: description.trim() || undefined,
           sku: sku.trim() || undefined,
-          category: category.trim() || undefined,
+          categories,
           available,
-          onKds,
           menuOrder: menuOrder !== "" ? parseInt(menuOrder, 10) : 0,
-          prepTime: prepTime !== "" ? parseInt(prepTime, 10) : 0,
           calories: calories !== "" ? parseInt(calories, 10) : undefined,
-          tags: tags
-            ? tags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)
-            : [],
-          allergens: allergens
-            ? allergens
-                .split(",")
-                .map((a) => a.trim())
-                .filter(Boolean)
-            : [],
+          allergens,
         };
         await ProductService.updateProduct(id as string, body);
       }
@@ -467,13 +439,15 @@ export default function ProductDetails() {
                   />
                 </div>
 
-                {/* Category */}
-                <div>
-                  <Label>Categoría</Label>
-                  <Input
-                    placeholder="Ej. Bebidas, Entradas…"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                {/* Categories */}
+                <div className="sm:col-span-2">
+                  <Label>Categorías</Label>
+                  <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+                    Selecciona las categorías del producto
+                  </p>
+                  <CategoryPicker
+                    value={categories}
+                    onChange={setCategories}
                     disabled={loading}
                   />
                 </div>
@@ -492,22 +466,12 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Nutrition & prep */}
+            {/* Nutrition & extras */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Cocina & nutrición
+                Nutrición & extras
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Tiempo de preparación (seg)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={prepTime}
-                    onChange={(e) => setPrepTime(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
                 <div>
                   <Label>Calorías</Label>
                   <Input
@@ -518,24 +482,17 @@ export default function ProductDetails() {
                     disabled={loading}
                   />
                 </div>
-                <div>
-                  <Label>Etiquetas (separadas por coma)</Label>
-                  <Input
-                    placeholder="picante, sin gluten…"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <div>
-                  <Label>Alérgenos (separados por coma)</Label>
-                  <Input
-                    placeholder="gluten, mariscos…"
-                    value={allergens}
-                    onChange={(e) => setAllergens(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
+              </div>
+              <div className="mt-4">
+                <Label>Alérgenos</Label>
+                <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+                  Selecciona los alérgenos presentes en este producto
+                </p>
+                <AllergenPicker
+                  value={allergens}
+                  onChange={setAllergens}
+                  disabled={loading}
+                />
               </div>
             </div>
 
@@ -569,34 +526,6 @@ export default function ProductDetails() {
                     <span
                       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
                       ${available ? "translate-x-5" : "translate-x-0"}`}
-                    />
-                  </button>
-                </div>
-
-                {/* onKds */}
-                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-white/[0.02]">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Enviar a pantalla de cocina (KDS)
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {onKds
-                        ? "Aparece en la pantalla de cocina"
-                        : "No se muestra en KDS"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={onKds}
-                    onClick={() => setOnKds((v) => !v)}
-                    disabled={loading}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1
-                      ${onKds ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-600"}`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
-                      ${onKds ? "translate-x-5" : "translate-x-0"}`}
                     />
                   </button>
                 </div>
