@@ -1,4 +1,4 @@
-import api from "../../api/client";
+import api from "../../../api/client";
 import { RawUser, User, ApiResponse, normalizeUser } from "./User.interface";
 
 // Devuelve una lista normalizada usando la respuesta directa (res.data -> RawUser[])

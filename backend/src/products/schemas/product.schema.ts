@@ -1,5 +1,22 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
+
+export enum Allergen {
+  GLUTEN = 'gluten',
+  CRUSTACEOS = 'crustaceos',
+  HUEVO = 'huevo',
+  PESCADO = 'pescado',
+  CACAHUETE = 'cacahuete',
+  SOJA = 'soja',
+  LACTEOS = 'lacteos',
+  FRUTOS_CASCARA = 'frutos_cascara',
+  APIO = 'apio',
+  MOSTAZA = 'mostaza',
+  SESAMO = 'sesamo',
+  SULFITOS = 'sulfitos',
+  ALTRAMUCES = 'altramuces',
+  MOLUSCOS = 'moluscos',
+}
 
 export type ProductDocument = Product & Document;
 
@@ -42,17 +59,6 @@ export class Product {
   @Prop({ type: [Object], default: [] })
   modifiers?: Record<string, any>[];
 
-  // KDS-related fields
-  @Prop({ type: Types.ObjectId, ref: 'Station' })
-  kdsStationId?: Types.ObjectId;
-
-  @Prop({ default: true })
-  onKds?: boolean;
-
-  // Estimated prep time in seconds (or minutes depending on app conventions)
-  @Prop({ default: 0 })
-  prepTime?: number;
-
   // Menu ordering
   @Prop({ default: 0 })
   menuOrder?: number;
@@ -60,8 +66,8 @@ export class Product {
   @Prop()
   calories?: number;
 
-  @Prop({ type: [String], default: [] })
-  allergens?: string[];
+  @Prop({ type: [String], enum: Object.values(Allergen), default: [] })
+  allergens?: Allergen[];
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

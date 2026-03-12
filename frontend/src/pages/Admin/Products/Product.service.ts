@@ -1,4 +1,4 @@
-import api from "../../api/client";
+import api from "../../../api/client";
 import { RawProduct, Product, ApiResponse, normalizeProduct } from "./Product.interface";
 
 export async function fetchProducts(): Promise<Product[]> {

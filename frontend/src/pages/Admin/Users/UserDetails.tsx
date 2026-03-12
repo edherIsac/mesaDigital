@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import UserService, { CreateUserDto, UpdateUserDto } from "./User.service";
-import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
-import Button from "../../components/ui/button/Button";
-import { EyeCloseIcon, EyeIcon } from "../../icons";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
+import Button from "../../../components/ui/button/Button";
+import { EyeCloseIcon, EyeIcon } from "../../../icons";
 
 const ROLE_STYLES: Record<string, string> = {
   SUPERVISOR:
@@ -201,7 +201,7 @@ export default function UserDetails() {
       </div>
 
       {fetchLoading && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-400 dark:border-gray-800 dark:bg-gray-900">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-400 dark:border-gray-800 dark:bg-white/[0.03]">
           Cargando datos...
         </div>
       )}
@@ -209,7 +209,7 @@ export default function UserDetails() {
       {!fetchLoading && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {/* ── Avatar card ── */}
-          <div className="flex flex-col items-center gap-5 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex flex-col items-center gap-5 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             {/* Drop zone */}
             {!isNew ? (
               <div
@@ -409,7 +409,7 @@ export default function UserDetails() {
           </div>
 
           {/* ── Form card ── */}
-          <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+          <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
             {error && (
               <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800/40 dark:bg-red-500/10 dark:text-red-400">
                 <svg

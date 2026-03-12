@@ -1,4 +1,5 @@
-import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
+import { Allergen } from '../schemas/product.schema';
 
 export class CreateProductDto {
   @IsString()
@@ -41,18 +42,6 @@ export class CreateProductDto {
   @IsOptional()
   modifiers?: any[];
 
-  @IsMongoId()
-  @IsOptional()
-  kdsStationId?: string;
-
-  @IsNumber()
-  @IsOptional()
-  prepTime?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  onKds?: boolean;
-
   @IsNumber()
   @IsOptional()
   menuOrder?: number;
@@ -62,6 +51,7 @@ export class CreateProductDto {
   calories?: number;
 
   @IsArray()
+  @IsEnum(Allergen, { each: true })
   @IsOptional()
-  allergens?: string[];
+  allergens?: Allergen[];
 }

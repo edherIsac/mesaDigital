@@ -4,9 +4,9 @@ import ProductService, {
   CreateProductDto,
   UpdateProductDto,
 } from "./Product.service";
-import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
-import Button from "../../components/ui/button/Button";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
+import Button from "../../../components/ui/button/Button";
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
@@ -267,7 +267,7 @@ export default function ProductDetails() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left: Cover image */}
           <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Imagen de portada
               </h2>
@@ -411,7 +411,7 @@ export default function ProductDetails() {
 
           {/* Right: Form fields */}
           <div className="lg:col-span-2 space-y-5">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Información general
               </h2>
@@ -493,7 +493,7 @@ export default function ProductDetails() {
             </div>
 
             {/* Nutrition & prep */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Cocina & nutrición
               </h2>
@@ -540,7 +540,7 @@ export default function ProductDetails() {
             </div>
 
             {/* Toggles */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Estado
               </h2>

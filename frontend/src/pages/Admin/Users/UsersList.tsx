@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import UserService from "./User.service";
 import { User } from "./User.interface";
-import Button from "../../components/ui/button/Button";
-import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
+import Button from "../../../components/ui/button/Button";
+import Input from "../../../components/form/input/InputField";
+import Label from "../../../components/form/Label";
 
 // Using `User` from User.interface.ts
 
@@ -144,7 +144,7 @@ export default function UsersList() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <Label>Buscar</Label>
@@ -180,7 +180,7 @@ export default function UsersList() {
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -274,7 +274,7 @@ export default function UsersList() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar name={u.name || "?"} src={(u as any).avatarUrl} />
+                        <Avatar name={u.name || "?"} src={u.avatarUrl} />
                         <span className="font-medium text-gray-800 dark:text-white/90">
                           {u.name}
                         </span>

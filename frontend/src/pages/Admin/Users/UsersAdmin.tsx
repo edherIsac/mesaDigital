@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import UserService from "./User.service";
 import { User } from "./User.interface";
-import Input from "../../components/form/input/InputField";
-import Button from "../../components/ui/button/Button";
+import Input from "../../../components/form/input/InputField";
+import Button from "../../../components/ui/button/Button";
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState<User[]>([]);

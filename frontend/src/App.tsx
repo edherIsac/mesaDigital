@@ -7,10 +7,13 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import Splash from "./pages/Splash";
-import UsersList from "./pages/Admin/UsersList";
-import UserDetails from "./pages/Admin/UserDetails";
-import ProductsList from "./pages/Admin/ProductsList";
-import ProductDetails from "./pages/Admin/ProductDetails";
+import UsersList from "./pages/Admin/Users/UsersList";
+import UserDetails from "./pages/Admin/Users/UserDetails";
+import ProductsList from "./pages/Admin/Products/ProductsList";
+import ProductDetails from "./pages/Admin/Products/ProductDetails";
+import KDS from "./pages/KDS/KDS";
+import Menu from "./pages/Menu/Menu";
+import Caja from "./pages/Caja/Caja";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -108,6 +111,27 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["ADMIN"]}>
                 <ProductDetails />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="kds" element={
+            <RequireAuth>
+              <RequireRole roles={["CHEF", "ADMIN"]}>
+                <KDS />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="menu" element={
+            <RequireAuth>
+              <RequireRole roles={["WAITER", "ADMIN"]}>
+                <Menu />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="caja" element={
+            <RequireAuth>
+              <RequireRole roles={["CASHIER", "ADMIN"]}>
+                <Caja />
               </RequireRole>
             </RequireAuth>
           } />

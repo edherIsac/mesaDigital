@@ -159,27 +159,60 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const mainItems: NavItem[] =
-        userRole === "ADMIN"
-          ? [
-              ...navItems,
-              {
-                icon: <UserCircleIcon />,
-                name: "Usuarios",
-                path: "/admin/users",
-              },
-              {
-                icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M3 9h18M9 21V9" />
-                  </svg>
-                ),
-                name: "Productos",
-                path: "/admin/products",
-              },
-            ]
-          : navItems;
+      const extraItems: NavItem[] = [];
+      if (userRole === "ADMIN" || userRole === "CHEF") {
+        extraItems.push({
+          icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+              <path d="M8 12h8M12 8v8" />
+            </svg>
+          ),
+          name: "KDS",
+          path: "/kds",
+        });
+      }
+      if (userRole === "ADMIN" || userRole === "WAITER") {
+        extraItems.push({
+          icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="M9 12h6M9 16h4" />
+            </svg>
+          ),
+          name: "Menú",
+          path: "/menu",
+        });
+      }
+      if (userRole === "ADMIN" || userRole === "CASHIER") {
+        extraItems.push({
+          icon: (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <path d="M2 10h20" />
+            </svg>
+          ),
+          name: "Caja",
+          path: "/caja",
+        });
+      }
+      if (userRole === "ADMIN") {
+        extraItems.push(
+          { icon: <UserCircleIcon />, name: "Usuarios", path: "/admin/users" },
+          {
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+            ),
+            name: "Productos",
+            path: "/admin/products",
+          },
+        );
+      }
+      const mainItems: NavItem[] = extraItems.length > 0 ? [...navItems, ...extraItems] : navItems;
       const items = menuType === "main" ? mainItems : othersItems;
       items.forEach((nav, index) => {
         nav.subItems?.forEach((subItem) => {
@@ -413,27 +446,60 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {(() => {
-                const mainItems =
-                  userRole === "ADMIN"
-                    ? [
-                        ...navItems,
-                        {
-                          icon: <UserCircleIcon />,
-                          name: "Usuarios",
-                          path: "/admin/users",
-                        },
-                        {
-                          icon: (
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="3" width="18" height="18" rx="2" />
-                              <path d="M3 9h18M9 21V9" />
-                            </svg>
-                          ),
-                          name: "Productos",
-                          path: "/admin/products",
-                        },
-                      ]
-                    : navItems;
+                const extra: NavItem[] = [];
+                if (userRole === "ADMIN" || userRole === "CHEF") {
+                  extra.push({
+                    icon: (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                        <path d="M8 12h8M12 8v8" />
+                      </svg>
+                    ),
+                    name: "KDS",
+                    path: "/kds",
+                  });
+                }
+                if (userRole === "ADMIN" || userRole === "WAITER") {
+                  extra.push({
+                    icon: (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                        <rect x="9" y="3" width="6" height="4" rx="1" />
+                        <path d="M9 12h6M9 16h4" />
+                      </svg>
+                    ),
+                    name: "Menú",
+                    path: "/menu",
+                  });
+                }
+                if (userRole === "ADMIN" || userRole === "CASHIER") {
+                  extra.push({
+                    icon: (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <path d="M2 10h20" />
+                      </svg>
+                    ),
+                    name: "Caja",
+                    path: "/caja",
+                  });
+                }
+                if (userRole === "ADMIN") {
+                  extra.push(
+                    { icon: <UserCircleIcon />, name: "Usuarios", path: "/admin/users" },
+                    {
+                      icon: (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <path d="M3 9h18M9 21V9" />
+                        </svg>
+                      ),
+                      name: "Productos",
+                      path: "/admin/products",
+                    },
+                  );
+                }
+                const mainItems = extra.length > 0 ? [...navItems, ...extra] : navItems;
                 return renderMenuItems(mainItems, "main");
               })()}
             </div>
