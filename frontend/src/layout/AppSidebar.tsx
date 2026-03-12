@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 // Assume these icons are imported from an icon library
 import {
@@ -94,7 +94,7 @@ const othersItems: NavItem[] = [
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const location = useLocation();
   const [userRole, setUserRole] = useState<string | null>(() => {
     try {
       const raw = localStorage.getItem("user");
@@ -115,11 +115,7 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  useEffect(() => {
-    const onPop = () => setCurrentPath(window.location.pathname);
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  // React Router's `useLocation` updates on navigation; no popstate listener needed.
 
   useEffect(() => {
     try {
@@ -151,10 +147,7 @@ const AppSidebar: React.FC = () => {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const isActive = useCallback(
-    (path: string) => currentPath === path,
-    [currentPath],
-  );
+  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
   useEffect(() => {
     let submenuMatched = false;
@@ -230,7 +223,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [currentPath, isActive]);
+  }, [location.pathname, isActive, userRole]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
