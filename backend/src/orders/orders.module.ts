@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { TablesService } from './tables.service';
+import { TablesController } from './tables.controller';
 import { Order, OrderSchema } from './schemas/order.schema';
 import { Station, StationSchema } from './schemas/station.schema';
 import { KdsDevice, KdsDeviceSchema } from './schemas/kds-device.schema';
@@ -20,8 +22,8 @@ import { OrderEvent, OrderEventSchema } from './schemas/order-event.schema';
       { name: OrderEvent.name, schema: OrderEventSchema },
     ]),
   ],
-  controllers: [OrdersController],
-  providers: [OrdersService],
-  exports: [OrdersService],
+  controllers: [OrdersController, TablesController],
+  providers: [OrdersService, TablesService],
+  exports: [OrdersService, TablesService],
 })
 export class OrdersModule {}

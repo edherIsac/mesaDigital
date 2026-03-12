@@ -28,7 +28,8 @@ export class OrdersService {
 
     const created = await this.orderModel.create({
       orderNumber,
-      locationId: new Types.ObjectId(createDto.locationId),
+      // locationId is optional now; only set if provided
+      ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
       tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
       type: createDto.type || 'dine_in',
       items: createDto.items || [],

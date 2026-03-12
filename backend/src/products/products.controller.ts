@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -64,9 +65,10 @@ export class ProductsController {
   }
 
   @Get()
-  async findAll() {
+  async findAll(@Query('size') size?: string) {
     const products = await this.productsService.findAll();
-    return products.map((p: any) => this.toResponse(p, 80));
+    const s = Number.parseInt(String(size || ''), 10) || 80;
+    return products.map((p: any) => this.toResponse(p, s));
   }
 
   @Get(':id')

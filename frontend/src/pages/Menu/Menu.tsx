@@ -12,7 +12,7 @@ export default function Menu() {
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    ProductService.fetchProducts()
+    ProductService.fetchProducts(400)
       .then((data) => {
         if (!mounted) return;
         setProducts(data ?? []);

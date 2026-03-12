@@ -7,7 +7,7 @@ export interface Product {
   description?: string;
   price: number;
   sku?: string;
-  category?: string;
+  categories?: Category[];
   available?: boolean;
   coverImage?: string | null;
   coverImagePublicId?: string | null;

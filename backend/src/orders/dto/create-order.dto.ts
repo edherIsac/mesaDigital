@@ -4,7 +4,8 @@ import { CreateOrderItemDto } from './create-order-item.dto';
 
 export class CreateOrderDto {
   @IsString()
-  locationId: string;
+  @IsOptional()
+  locationId?: string;
 
   @IsString()
   @IsOptional()
@@ -15,9 +16,10 @@ export class CreateOrderDto {
   type?: string;
 
   @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
-  items: CreateOrderItemDto[];
+  items?: CreateOrderItemDto[];
 
   @IsString()
   @IsOptional()

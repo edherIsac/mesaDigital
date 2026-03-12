@@ -14,6 +14,8 @@ import ProductDetails from "./pages/Admin/Products/ProductDetails";
 import KDS from "./pages/KDS/KDS";
 import Menu from "./pages/Menu/Menu";
 import Caja from "./pages/Caja/Caja";
+import MesaPage from "./pages/Mesa/Mesa";
+import MesasAdmin from "./pages/Admin/Mesas/MesasAdmin";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -125,6 +127,20 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["WAITER", "ADMIN"]}>
                 <Menu />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="mesa" element={
+            <RequireAuth>
+              <RequireRole roles={["WAITER", "ADMIN"]}>
+                <MesaPage />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="admin/mesas" element={
+            <RequireAuth>
+              <RequireRole roles={["ADMIN"]}>
+                <MesasAdmin />
               </RequireRole>
             </RequireAuth>
           } />

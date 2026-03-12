@@ -69,7 +69,7 @@ export default function ProductsList() {
   const categories = useMemo(() => {
     const set = new Set<Category>();
     products.forEach((p) => {
-      if (p.category) set.add(p.category as Category);
+      (p.categories ?? []).forEach((c) => set.add(c));
     });
     return Array.from(set).sort((a, b) =>
       CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], "es"),
@@ -83,10 +83,12 @@ export default function ProductsList() {
         !q ||
         p.name.toLowerCase().includes(q) ||
         (p.sku ?? "").toLowerCase().includes(q) ||
-        (p.category && CATEGORY_LABELS[p.category as Category].toLowerCase().includes(q));
+        (p.categories ?? []).some((c) =>
+          CATEGORY_LABELS[c].toLowerCase().includes(q),
+        );
       const matchesCategory =
         categoryFilter === "ALL" ||
-        p.category === (categoryFilter as Category);
+        (p.categories ?? []).includes(categoryFilter as Category);
       return matchesSearch && matchesCategory;
     });
   }, [products, search, categoryFilter]);
@@ -252,14 +254,14 @@ export default function ProductsList() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {p.category ? (
+                      {(p.categories ?? []).length > 0 ? (
                         <span>
-                          {CATEGORY_LABELS[p.category as Category]}
+                          {(p.categories ?? [])
+                            .map((c) => CATEGORY_LABELS[c])
+                            .join(", ")}
                         </span>
                       ) : (
-                        <span className="text-gray-300 dark:text-gray-600">
-                          —
-                        </span>
+                        <span className="text-gray-300 dark:text-gray-600">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
