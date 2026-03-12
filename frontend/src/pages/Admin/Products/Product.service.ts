@@ -29,7 +29,6 @@ export interface CreateProductDto {
   categories?: Category[];
   available?: boolean;
   menuOrder?: number;
-  calories?: number;
   allergens?: Allergen[];
 }
 
@@ -42,7 +41,6 @@ export interface UpdateProductDto {
   available?: boolean;
   coverImage?: string;
   menuOrder?: number;
-  calories?: number;
   allergens?: Allergen[];
 }
 

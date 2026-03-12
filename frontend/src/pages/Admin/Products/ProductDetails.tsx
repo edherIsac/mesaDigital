@@ -23,8 +23,6 @@ export default function ProductDetails() {
   const [price, setPrice] = useState("");
   const [sku, setSku] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [menuOrder, setMenuOrder] = useState("");
-  const [calories, setCalories] = useState("");
   const [available, setAvailable] = useState(true);
   const [allergens, setAllergens] = useState<Allergen[]>([]);
 
@@ -55,8 +53,6 @@ export default function ProductDetails() {
           setPrice(p.price !== undefined ? String(p.price) : "");
           setSku(p.sku ?? "");
           setCategories((p.categories ?? []) as Category[]);
-          setMenuOrder(p.menuOrder !== undefined ? String(p.menuOrder) : "0");
-          setCalories(p.calories !== undefined ? String(p.calories) : "");
           setAvailable(p.available ?? true);
           setAllergens((p.allergens ?? []) as Allergen[]);
           setImagePreview(p.coverImage ?? undefined);
@@ -125,8 +121,6 @@ export default function ProductDetails() {
           sku: sku.trim() || undefined,
           categories,
           available,
-          menuOrder: menuOrder !== "" ? parseInt(menuOrder, 10) : 0,
-          calories: calories !== "" ? parseInt(calories, 10) : undefined,
           allergens,
         };
         const created = await ProductService.createProduct(body);
@@ -139,15 +133,13 @@ export default function ProductDetails() {
           sku: sku.trim() || undefined,
           categories,
           available,
-          menuOrder: menuOrder !== "" ? parseInt(menuOrder, 10) : 0,
-          calories: calories !== "" ? parseInt(calories, 10) : undefined,
           allergens,
         };
         await ProductService.updateProduct(id as string, body);
       }
 
-      // Upload image if one was selected (edit or just-created)
-      if (imageFile && savedId) {
+      // Upload image only in edit mode
+      if (!isNew && imageFile && savedId) {
         try {
           setUploadingImage(true);
           await ProductService.uploadProductImage(savedId, imageFile);
@@ -237,7 +229,8 @@ export default function ProductDetails() {
 
       <form onSubmit={handleSave} noValidate>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left: Cover image */}
+          {/* Left: Cover image — edit only */}
+          {!isNew && (
           <div className="lg:col-span-1">
             <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -380,9 +373,10 @@ export default function ProductDetails() {
               )}
             </div>
           </div>
+          )}
 
           {/* Right: Form fields */}
-          <div className="lg:col-span-2 space-y-5">
+          <div className={`${isNew ? "lg:col-span-3" : "lg:col-span-2"} space-y-5`}>
             <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
               <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Información general
@@ -452,48 +446,22 @@ export default function ProductDetails() {
                   />
                 </div>
 
-                {/* Menu order */}
-                <div>
-                  <Label>Orden en menú</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={menuOrder}
-                    onChange={(e) => setMenuOrder(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Nutrition & extras */}
+            {/* Alérgenos */}
             <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-              <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Nutrición & extras
+              <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Alérgenos
               </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Calorías</Label>
-                  <Input
-                    type="number"
-                    placeholder="—"
-                    value={calories}
-                    onChange={(e) => setCalories(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              <div className="mt-4">
-                <Label>Alérgenos</Label>
-                <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
-                  Selecciona los alérgenos presentes en este producto
-                </p>
-                <AllergenPicker
-                  value={allergens}
-                  onChange={setAllergens}
-                  disabled={loading}
-                />
-              </div>
+              <p className="mb-3 text-xs text-gray-400 dark:text-gray-500">
+                Selecciona los alérgenos presentes en este producto
+              </p>
+              <AllergenPicker
+                value={allergens}
+                onChange={setAllergens}
+                disabled={loading}
+              />
             </div>
 
             {/* Toggles */}

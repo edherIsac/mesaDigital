@@ -43,10 +43,6 @@ export class CreateProductDto {
   @IsOptional()
   menuOrder?: number;
 
-  @IsNumber()
-  @IsOptional()
-  calories?: number;
-
   @IsArray()
   @IsEnum(Allergen, { each: true })
   @IsOptional()

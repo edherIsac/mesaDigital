@@ -123,9 +123,6 @@ export class Product {
   @Prop({ default: 0 })
   menuOrder?: number;
 
-  @Prop()
-  calories?: number;
-
   @Prop({ type: [String], enum: Object.values(Allergen), default: [] })
   allergens?: Allergen[];
 }

@@ -13,7 +13,6 @@ export interface Product {
   coverImagePublicId?: string | null;
   images?: string[];
   menuOrder?: number;
-  calories?: number;
   allergens?: Allergen[];
   createdAt?: string;
   updatedAt?: string;
@@ -32,7 +31,6 @@ export interface RawProduct {
   coverImagePublicId?: string | null;
   images?: string[];
   menuOrder?: number;
-  calories?: number;
   allergens?: Allergen[];
   createdAt?: string;
   updatedAt?: string;
@@ -57,7 +55,6 @@ export function normalizeProduct(raw: RawProduct): Product {
     coverImagePublicId: raw.coverImagePublicId ?? null,
     images: raw.images ?? [],
     menuOrder: raw.menuOrder ?? 0,
-    calories: raw.calories,
     allergens: (raw.allergens ?? []) as Allergen[],
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
