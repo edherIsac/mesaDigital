@@ -232,7 +232,7 @@ export default function ProductDetails() {
           {/* Left: Cover image — edit only */}
           {!isNew && (
           <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Imagen de portada
               </h2>
@@ -377,7 +377,7 @@ export default function ProductDetails() {
 
           {/* Right: Form fields */}
           <div className={`${isNew ? "lg:col-span-3" : "lg:col-span-2"} space-y-5`}>
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
               <h2 className="mb-5 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Información general
               </h2>
@@ -450,7 +450,7 @@ export default function ProductDetails() {
             </div>
 
             {/* Alérgenos */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Alérgenos
               </h2>
@@ -465,7 +465,7 @@ export default function ProductDetails() {
             </div>
 
             {/* Toggles */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
               <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Estado
               </h2>

@@ -223,7 +223,7 @@ export default function UserDetails() {
       {!fetchLoading && (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {/* ── Avatar card ── */}
-          <div className="flex flex-col items-center gap-5 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="flex flex-col items-center gap-5 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
             {/* Drop zone */}
             {!isNew ? (
               <div
@@ -423,7 +423,7 @@ export default function UserDetails() {
           </div>
 
           {/* ── Form card ── */}
-          <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.06]">
             {error && (
               <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800/40 dark:bg-red-500/10 dark:text-red-400">
                 <svg

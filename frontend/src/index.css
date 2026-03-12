@@ -871,3 +871,30 @@ span.flatpickr-weekday,
 .simplebar-scrollbar.simplebar-visible:before {
   @apply opacity-100;
 }
+
+/* Improve dark-mode contrast for low-opacity white backgrounds and cards */
+.dark [class*="dark:bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.dark .bg-white {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Slightly increase contrast of common muted text in dark mode */
+.dark .text-gray-400 {
+  color: #bfc7d6 !important;
+}
+
+/* Make placeholders more readable in dark mode */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgba(255,255,255,0.46) !important;
+}
+
+/* Improve border visibility for common card borders in dark mode */
+.dark [class*="dark:border-gray-800"],
+.dark .border-gray-800 {
+  border-color: rgba(255,255,255,0.04) !important;
+}
+

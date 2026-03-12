@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
 export class UpdateTableDto {
   @IsString()
@@ -12,4 +12,12 @@ export class UpdateTableDto {
   @IsString()
   @IsOptional()
   zone?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  available?: boolean;
 }

@@ -17,7 +17,7 @@ export default function ProductCard({ product, className = '' }: Props) {
   return (
     <article
       tabIndex={0}
-      className={`group rounded-2xl border border-gray-200 bg-white shadow-sm transform transition duration-150 ease-out hover:shadow-lg hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none overflow-hidden dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
+      className={`group rounded-2xl border border-gray-200 bg-white shadow-sm transform transition duration-150 ease-out hover:shadow-lg hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none overflow-hidden dark:border-gray-800 dark:bg-white/[0.06] ${className}`}
       role="article"
     >
       <div className="h-44 w-full overflow-hidden rounded-t-2xl bg-gray-100">

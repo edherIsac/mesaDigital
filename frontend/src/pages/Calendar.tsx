@@ -121,7 +121,7 @@ const Calendar: React.FC = () => {
         title="React.js Calendar Dashboard | mesaDigital - React.js Admin Dashboard Template"
         description="This is React.js Calendar Dashboard page for mesaDigital - React.js Tailwind CSS Admin Dashboard Template"
       />
-      <div className="rounded-2xl border  border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="rounded-2xl border  border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.06]">
         <div className="custom-calendar">
           <FullCalendar
             ref={calendarRef}
