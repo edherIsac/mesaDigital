@@ -125,7 +125,7 @@ export default function ProductsList() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Productos
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">
             Gestiona el catálogo de productos del menú
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function ProductsList() {
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+              <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-white/[0.03] dark:text-gray-300">
                 <th className="px-4 py-3">Imagen</th>
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Categoría</th>
@@ -193,7 +193,7 @@ export default function ProductsList() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-4 py-10 text-center text-gray-400 dark:text-gray-600"
+                    className="px-4 py-10 text-center text-gray-400 dark:text-gray-300"
                   >
                     <div className="flex flex-col items-center gap-2">
                       <svg

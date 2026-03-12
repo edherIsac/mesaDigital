@@ -16,6 +16,7 @@ import Menu from "./pages/Menu/Menu";
 import Caja from "./pages/Caja/Caja";
 import MapaMesas from "./pages/Mapas/MapaMesas";
 import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
+import MesaNew from "./pages/Admin/Mesas/MesaNew";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -113,6 +114,13 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["ADMIN"]}>
                 <ProductDetails />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="admin/mesa/new" element={
+            <RequireAuth>
+              <RequireRole roles={["ADMIN"]}>
+                <MesaNew />
               </RequireRole>
             </RequireAuth>
           } />
