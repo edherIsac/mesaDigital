@@ -6,7 +6,7 @@ import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import OrderService from "../Orders/Order.service";
 import { useNavigate } from "react-router";
 
-export default function MesaPage() {
+export default function MapaMesas() {
   const [mesas, setMesas] = useState<Mesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState<string | null>(null);
@@ -33,13 +33,13 @@ export default function MesaPage() {
 
   return (
     <div>
-      <PageMeta title="Mesas | mesaDigital" description="Lista de mesas" />
-      <PageBreadcrumb pageTitle="Mesas" />
+      <PageMeta title="Mapa de mesas | mesaDigital" description="Mapa de mesas" />
+      <PageBreadcrumb pageTitle="Mapa de mesas" />
 
       <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
         <div className="mx-auto w-full max-w-[1100px]">
           <div className="text-center">
-            <h3 className="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl">Mesas</h3>
+            <h3 className="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl">Mapa de mesas</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">Selecciona una mesa para ver su estado o gestionarla.</p>
           </div>
 
@@ -62,18 +62,13 @@ export default function MesaPage() {
                     className="rounded-2xl border border-gray-200 bg-white p-4 text-center hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={async () => {
                       try {
-                        // Only allow starting an order if user is WAITER or ADMIN
                         const raw = localStorage.getItem('user');
                         const role = raw ? (JSON.parse(raw)?.role ?? null) : null;
-                        if (role !== 'WAITER' && role !== 'ADMIN') {
-                          // navigate to table details later if needed
-                          return;
-                        }
+                        if (role !== 'WAITER' && role !== 'ADMIN') return;
                         if (!confirm(`Iniciar comanda en ${m.label}?`)) return;
                         setStarting(m.id);
                         const created = await OrderService.createOrder({ tableId: m.id, items: [] });
                         const orderId = created?._id ?? created?.id ?? created?.orderNumber ?? null;
-                        // navigate to menu with order and table context
                         if (orderId) {
                           navigate(`/menu?orderId=${encodeURIComponent(orderId)}&tableId=${encodeURIComponent(m.id)}`);
                         } else {

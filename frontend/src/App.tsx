@@ -14,8 +14,8 @@ import ProductDetails from "./pages/Admin/Products/ProductDetails";
 import KDS from "./pages/KDS/KDS";
 import Menu from "./pages/Menu/Menu";
 import Caja from "./pages/Caja/Caja";
-import MesaPage from "./pages/Mesa/Mesa";
-import MesasAdmin from "./pages/Admin/Mesas/MesasAdmin";
+import MapaMesas from "./pages/Mapas/MapaMesas";
+import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -130,17 +130,17 @@ export default function App() {
               </RequireRole>
             </RequireAuth>
           } />
-          <Route path="mesa" element={
+          <Route path="mapa-mesas" element={
             <RequireAuth>
               <RequireRole roles={["WAITER", "ADMIN"]}>
-                <MesaPage />
+                <MapaMesas />
               </RequireRole>
             </RequireAuth>
           } />
           <Route path="admin/mesas" element={
             <RequireAuth>
               <RequireRole roles={["ADMIN"]}>
-                <MesasAdmin />
+                <MesasConfig />
               </RequireRole>
             </RequireAuth>
           } />
