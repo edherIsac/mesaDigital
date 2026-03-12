@@ -69,7 +69,7 @@ export default function ProductsList() {
   const categories = useMemo(() => {
     const set = new Set<Category>();
     products.forEach((p) => {
-      (p.categories ?? []).forEach((c) => set.add(c));
+      if (p.category) set.add(p.category as Category);
     });
     return Array.from(set).sort((a, b) =>
       CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], "es"),
@@ -83,12 +83,10 @@ export default function ProductsList() {
         !q ||
         p.name.toLowerCase().includes(q) ||
         (p.sku ?? "").toLowerCase().includes(q) ||
-        (p.categories ?? []).some((c) =>
-          CATEGORY_LABELS[c].toLowerCase().includes(q),
-        );
+        (p.category && CATEGORY_LABELS[p.category as Category].toLowerCase().includes(q));
       const matchesCategory =
         categoryFilter === "ALL" ||
-        (p.categories ?? []).includes(categoryFilter as Category);
+        p.category === (categoryFilter as Category);
       return matchesSearch && matchesCategory;
     });
   }, [products, search, categoryFilter]);
@@ -151,7 +149,7 @@ export default function ProductsList() {
           <Label>Categoría</Label>
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => setCategoryFilter(e.target.value as Category | "ALL")}
             className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
           >
             <option value="ALL">Todas las categorías</option>
@@ -254,11 +252,9 @@ export default function ProductsList() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {(p.categories ?? []).length > 0 ? (
+                      {p.category ? (
                         <span>
-                          {(p.categories ?? [])
-                            .map((c) => CATEGORY_LABELS[c])
-                            .join(", ")}
+                          {CATEGORY_LABELS[p.category as Category]}
                         </span>
                       ) : (
                         <span className="text-gray-300 dark:text-gray-600">
