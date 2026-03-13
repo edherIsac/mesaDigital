@@ -18,6 +18,7 @@ import MapaMesas from "./pages/Mapas/MapaMesas";
 import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
 import MesaNew from "./pages/Admin/Mesas/MesaNew";
 import MesaEdit from "./pages/Admin/Mesas/MesaEdit";
+import TableManage from "./pages/Orders/TableManage";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -150,6 +151,13 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["WAITER", "ADMIN"]}>
                 <MapaMesas />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="orders/table/:tableId" element={
+            <RequireAuth>
+              <RequireRole roles={["WAITER", "ADMIN"]}>
+                <TableManage />
               </RequireRole>
             </RequireAuth>
           } />
