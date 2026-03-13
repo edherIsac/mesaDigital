@@ -18,7 +18,16 @@ export class OrdersService {
 
     // Basic totals calculation
     let subtotal = 0;
-    for (const it of createDto.items || []) {
+    // Collect items from top-level items or from seats
+    let items = [] as any[];
+    if (createDto.items && Array.isArray(createDto.items)) items = items.concat(createDto.items as any[]);
+    if ((createDto as any).seats && Array.isArray((createDto as any).seats)) {
+      for (const s of (createDto as any).seats) {
+        if (s && Array.isArray(s.items)) items = items.concat(s.items as any[]);
+      }
+    }
+
+    for (const it of items || []) {
       const price = it.unitPrice || 0;
       subtotal += price * (it.quantity || 1);
       if (it.modifiers) {
@@ -32,7 +41,8 @@ export class OrdersService {
       ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
       tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
       type: createDto.type || 'dine_in',
-      items: createDto.items || [],
+      items: items || [],
+      seats: (createDto as any).seats || [],
       subtotal,
       tax: 0,
       total: subtotal,
@@ -58,7 +68,40 @@ export class OrdersService {
   }
 
   async update(id: string, updateDto: UpdateOrderDto) {
-    const updated = await this.orderModel.findByIdAndUpdate(id, { $set: updateDto }, { new: true }).exec();
+    const payload: any = { ...updateDto };
+
+    // If seats provided, compute subtotal from seats' items and flatten to items
+    if ((updateDto as any).seats !== undefined) {
+      const seats = (updateDto as any).seats || [];
+      let subtotal = 0;
+      const items: any[] = [];
+      for (const s of seats) {
+        if (s && Array.isArray(s.items)) {
+          for (const it of s.items) {
+            items.push(it);
+            subtotal += (it.unitPrice ?? 0) * (it.quantity ?? 1);
+            if (it.modifiers) {
+              for (const m of it.modifiers) subtotal += (m.priceAdjust ?? 0) * (m.qty ?? 1);
+            }
+          }
+        }
+      }
+      payload.subtotal = subtotal;
+      payload.total = subtotal;
+      payload.items = items;
+    } else if (updateDto.items !== undefined) {
+      let subtotal = 0;
+      for (const it of updateDto.items) {
+        subtotal += (it.unitPrice ?? 0) * (it.quantity ?? 1);
+        if (it.modifiers) {
+          for (const m of it.modifiers) subtotal += (m.priceAdjust ?? 0) * (m.qty ?? 1);
+        }
+      }
+      payload.subtotal = subtotal;
+      payload.total = subtotal;
+    }
+
+    const updated = await this.orderModel.findByIdAndUpdate(id, { $set: payload }, { new: true }).exec();
     if (!updated) throw new NotFoundException('Order not found');
     return updated;
   }

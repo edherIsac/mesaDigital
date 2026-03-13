@@ -37,6 +37,10 @@ export class CreateOrderItemDto {
 
   @IsString()
   @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 
   @IsString()
