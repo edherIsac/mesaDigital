@@ -61,7 +61,7 @@ export default function StartOrder() {
   const [openRows, setOpenRows] = useState<Record<number, boolean>>({});
 
   const toggleRow = (id: number) => {
-    setOpenRows((prev) => ({ ...prev, [id]: !prev[id] }));
+    setOpenRows((prev) => (prev[id] ? {} : { [id]: true }));
   };
 
   useEffect(() => {
@@ -188,16 +188,24 @@ export default function StartOrder() {
                         const isOpen = !!openRows[person.id];
                         return (
                           <Fragment key={person.id}>
-                            <TableRow>
+                            <TableRow
+                              className={`transition-colors duration-150 ${isOpen ? 'bg-white/[0.03] dark:bg-white/[0.03]' : 'hover:bg-white/[0.02] dark:hover:bg-white/[0.01]'}`}
+                              onClick={() => toggleRow(person.id)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  toggleRow(person.id);
+                                }
+                              }}
+                              aria-expanded={isOpen}
+                            >
                               <TableCell className="px-5 py-4 sm:px-6 text-start">
-                                <button
-                                  onClick={() => toggleRow(person.id)}
-                                  aria-expanded={isOpen}
-                                  className="inline-flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-white/90"
-                                >
+                                <div className="inline-flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-white/90">
                                   <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "-rotate-180 text-brand-500" : ""}`} />
                                   {person.name}
-                                </button>
+                                </div>
                               </TableCell>
 
                               <TableCell className="px-4 py-3 text-theme-sm text-gray-700">{person.orders.length}</TableCell>
@@ -205,25 +213,38 @@ export default function StartOrder() {
                               <TableCell className="px-4 py-3 text-theme-sm text-gray-500">${personTotal.toFixed(2)}</TableCell>
                             </TableRow>
 
-                            {isOpen &&
-                              person.orders.map((o) => {
+                            {person.orders.map((o) => {
                                 const img = productImages[(o.id - 1) % productImages.length];
                                 return (
-                                  <TableRow key={o.id}>
-                                    <TableCell className="px-5 py-2 sm:px-6 text-start text-sm text-gray-700">
-                                      <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 overflow-hidden rounded-full">
-                                          <img width={40} height={40} src={img} alt={o.name} />
-                                        </div>
-                                        <div>
-                                          <div className="text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
-                                          <div className="text-xs text-gray-500 dark:text-gray-400">{o.type}</div>
+                                  <TableRow key={o.id} className={isOpen ? 'bg-white/[0.02] dark:bg-white/[0.01]' : ''}>
+                                    <TableCell className="px-5 py-0 sm:px-6 text-start text-sm text-gray-700">
+                                      <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                        <div className="py-2 flex items-center gap-3">
+                                          <div className="w-12 h-12 overflow-hidden rounded-full">
+                                            <img width={48} height={48} src={img} alt={o.name} />
+                                          </div>
+                                          <div>
+                                            <div className="text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{o.type}</div>
+                                          </div>
                                         </div>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-700">{o.qty}</TableCell>
-                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.note}</TableCell>
-                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.price}</TableCell>
+                                    <TableCell className="px-4 py-0 text-theme-sm text-gray-700">
+                                      <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                        <div className="py-2">{o.qty}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="px-4 py-0 text-theme-sm text-gray-500">
+                                      <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                        <div className="py-2">{o.note}</div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="px-4 py-0 text-theme-sm text-gray-500">
+                                      <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                        <div className="py-2">{o.price}</div>
+                                      </div>
+                                    </TableCell>
                                   </TableRow>
                                 );
                               })}
