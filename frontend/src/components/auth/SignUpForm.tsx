@@ -56,13 +56,18 @@ export default function SignUpForm() {
         localStorage.setItem("user", JSON.stringify(data.user));
       }
       navigate("/", { replace: true });
-    } catch (err: any) {
-      let message = err?.message ?? "Error de red";
+    } catch (err: unknown) {
+      let message = "Error de red";
       if (typeof err === "string") message = err;
-      else if (Array.isArray(err?.message)) message = err.message.join("; ");
-      else if (typeof err?.message === "string") message = err.message;
-      else if (typeof err?.error === "string") message = err.error;
-      else if (err?.message) message = String(err.message);
+      else if (err instanceof Error) message = err.message;
+      else if (err && typeof err === "object") {
+        const e = err as Record<string, unknown>;
+        const m = e["message"];
+        if (Array.isArray(m)) message = m.join("; ");
+        else if (typeof m === "string") message = m;
+        else if (typeof e["error"] === "string") message = e["error"] as string;
+        else if (m) message = String(m);
+      }
       setError(message);
     } finally {
       setLoading(false);

@@ -1,10 +1,16 @@
 import api from "../../api/client";
 
+export interface OrderItem {
+  productId?: string;
+  quantity?: number;
+  notes?: string;
+}
+
 export interface CreateOrderDto {
   locationId?: string;
   tableId?: string;
   type?: string;
-  items?: any[];
+  items?: OrderItem[];
   notes?: string;
   priority?: string;
 }

@@ -1,11 +1,12 @@
 import api from "../../../api/client";
 import { RawProduct, Product, ApiResponse, normalizeProduct } from "./Product.interface";
+import { AxiosRequestConfig } from "axios";
 import { Allergen } from "../../../constants/allergens";
 import { Category } from "../../../constants/categories";
 
 export async function fetchProducts(size?: number): Promise<Product[]> {
-  const params = size ? { params: { size } } : undefined;
-  const res = await api.get<RawProduct[]>('/products', params as any);
+  const params: AxiosRequestConfig | undefined = size ? { params: { size } } : undefined;
+  const res = await api.get<RawProduct[]>('/products', params);
   const raw: RawProduct[] = res.data ?? [];
   return raw.map(normalizeProduct);
 }

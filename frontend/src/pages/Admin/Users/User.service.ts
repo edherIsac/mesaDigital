@@ -70,8 +70,17 @@ export async function uploadUserAvatar(id: string, file: File): Promise<string> 
     },
   });
   // Try to resolve common response shapes
-  const payload: any = res.data;
-  return payload?.url ?? payload?.data?.url ?? payload?.avatarUrl ?? "";
+  const payload: unknown = res.data;
+  if (payload && typeof payload === "object") {
+    const p = payload as Record<string, unknown>;
+    if (typeof p.url === "string") return p.url;
+    if (p.data && typeof p.data === "object") {
+      const d = p.data as Record<string, unknown>;
+      if (typeof d.url === "string") return d.url;
+    }
+    if (typeof p.avatarUrl === "string") return p.avatarUrl;
+  }
+  return "";
 }
 
 export async function deleteUser(id: string): Promise<boolean> {

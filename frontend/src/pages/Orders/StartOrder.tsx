@@ -1,22 +1,23 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
-import { useEffect, useState } from "react";
-import { useParams, useLocation, useNavigate } from "react-router";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useLocation } from "react-router";
 import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
-import OrderService from "./Order.service";
+// Order creation handled elsewhere; page shows header info only for now
 
 export default function StartOrder() {
   const { tableId } = useParams() as { tableId?: string };
   const location = useLocation();
-  const navigate = useNavigate();
 
-  const initialMesa = (location.state as any)?.mesa as Mesa | undefined;
+  const initialMesa = (location.state as { mesa?: Mesa } | null | undefined)?.mesa;
 
   const [mesa, setMesa] = useState<Mesa | null>(initialMesa ?? null);
   const [loading, setLoading] = useState(!initialMesa && !!tableId);
-  const [creating, setCreating] = useState(false);
+//   const [creating, setCreating] = useState(false);
+  const dynamicRef = useRef<HTMLDivElement | null>(null);
+  const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -37,62 +38,74 @@ export default function StartOrder() {
     };
   }, [tableId, mesa]);
 
-  const handleStart = async () => {
-    if (!mesa) return;
-    try {
-      const raw = localStorage.getItem("user");
-      const role = raw ? (JSON.parse(raw)?.role ?? null) : null;
-      if (role !== "WAITER" && role !== "ADMIN") {
-        alert("Acceso denegado");
-        return;
-      }
-      if (!confirm(`Iniciar comanda en ${mesa.label}?`)) return;
-      setCreating(true);
-      await OrderService.createOrder({ tableId: mesa.id, items: [] });
-      navigate(`/`);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to create order", err);
-      alert("No se pudo iniciar la comanda.");
-    } finally {
-      setCreating(false);
-    }
-  };
+  // no start button on this screen; order creation handled elsewhere
+
+  useEffect(() => {
+    const update = () => {
+      if (!dynamicRef.current) return;
+      const wrapperRect = dynamicRef.current.getBoundingClientRect();
+      const avail = window.innerHeight - wrapperRect.top - 24; // 24px bottom spacing
+      setDynamicHeight(avail > 0 ? Math.max(avail, 0) : 0);
+    };
+    update();
+    window.addEventListener("resize", update);
+    // observe mutations that may change layout
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    if (ro) ro.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", update);
+      if (ro) ro.disconnect();
+    };
+  }, []);
 
   return (
     <div>
       <PageMeta title="Iniciar comanda" description="Iniciar comanda para una mesa" />
       <PageBreadcrumb pageTitle="Iniciar comanda" />
 
-      <div className="mx-auto w-full max-w-[900px]">
+      <div className="w-full">
         <div className="mt-6">
-          <ComponentCard title={mesa?.label ?? "Mesa"} desc={mesa ? `Asientos: ${mesa.seats ?? "-"}` : ""}>
+          <ComponentCard title={mesa?.label ?? "Mesa"} desc={""} noHeader>
             {loading ? (
-              <div className="animate-pulse">
-                <div className="h-6 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+              <div className="animate-pulse flex gap-4">
+                <div className="h-10 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-10 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="h-10 w-24 rounded bg-gray-200 dark:bg-gray-700" />
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Zona: {mesa?.zone ?? "-"}</div>
-                  <div className="mt-2">
-                    <span className="inline-flex items-center rounded-full bg-brand-50 text-brand-500 px-3 py-1 text-xs font-medium dark:bg-brand-500/15 dark:text-brand-300">
-                      Estado: Disponible
-                    </span>
-                  </div>
+              <div className="flex items-center justify-between gap-6 flex-wrap sm:flex-nowrap">
+                <div className="min-w-0">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Mesa</div>
+                  <div className="text-xl font-semibold text-gray-800 dark:text-white/90">{mesa?.label}</div>
                 </div>
 
-                <div>
-                  <button
-                    onClick={handleStart}
-                    disabled={!mesa || creating}
-                    className="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                  >
-                    {creating ? "Iniciando..." : "Iniciar comanda"}
-                  </button>
+                <div className="flex gap-6 items-center">
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Asientos</div>
+                    <div className="font-medium text-gray-800 dark:text-white/90">{mesa?.seats ?? "-"}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Zona</div>
+                    <div className="font-medium text-gray-800 dark:text-white/90">{mesa?.zone ?? "-"}</div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Estado</div>
+                    <div className="mt-1 inline-flex items-center rounded-full bg-brand-50 text-brand-500 px-3 py-1 text-xs font-medium dark:bg-brand-500/15 dark:text-brand-300">
+                      Disponible
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
+          </ComponentCard>
+        </div>
+        <div ref={dynamicRef} className="mt-4" style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}>
+          <ComponentCard className="w-full h-full" title={"Comanda"} desc={""} fillHeight>
+            <div className="p-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Aquí irá el contenido de la comanda (lista de artículos, notas, etc.).</p>
+            </div>
           </ComponentCard>
         </div>
       </div>
