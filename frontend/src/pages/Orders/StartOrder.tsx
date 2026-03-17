@@ -2,6 +2,7 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Fragment, useEffect, useState, useRef } from "react";
+import { Modal } from "../../components/ui/modal";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { ChevronDownIcon } from "../../icons";
 import { useParams, useLocation } from "react-router";
@@ -20,7 +21,7 @@ export default function StartOrder() {
 //   const [creating, setCreating] = useState(false);
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
-  const [people] = useState(() =>
+  const [people, setPeople] = useState(() =>
     [
       {
         id: 1,
@@ -51,6 +52,9 @@ export default function StartOrder() {
       orders: { id: number; name: string; qty: number; note: string; price: string; type: string }[];
     }[]
   );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const productImages = [
     "/images/product/product-01.jpg",
     "/images/product/product-02.jpg",
@@ -62,6 +66,22 @@ export default function StartOrder() {
 
   const toggleRow = (id: number) => {
     setOpenRows((prev) => (prev[id] ? {} : { [id]: true }));
+  };
+
+  const openAddPersonDialog = () => {
+    setNewPersonName(`Persona ${people.length + 1}`);
+    setIsDialogOpen(true);
+    // focus after modal opens
+    setTimeout(() => nameInputRef.current?.focus(), 50);
+  };
+
+  const handleAddPerson = () => {
+    const name = newPersonName.trim() || `Persona ${people.length + 1}`;
+    const newId = (people.reduce((m, p) => Math.max(m, p.id), 0) || 0) + 1;
+    const newPerson = { id: newId, name, orders: [] };
+    setPeople((prev) => [...prev, newPerson]);
+    setOpenRows({ [newId]: true });
+    setIsDialogOpen(false);
   };
 
   useEffect(() => {
@@ -150,8 +170,16 @@ export default function StartOrder() {
           <ComponentCard className="w-full h-full" noHeader fillHeight>
             <div className="h-full grid min-h-0" style={{ gridTemplateRows: "1fr 8fr 1fr" }}>
               {/* Top row (1fr / ~10%) */}
-              <div className="flex items-center">
+              <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500 dark:text-gray-400">Comanda</div>
+                <div>
+                  <button
+                    onClick={openAddPersonDialog}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
+                  >
+                    + Agregar persona
+                  </button>
+                </div>
               </div>
 
               {/* Middle row (8fr / ~80%) - scrollable table of dishes */}
@@ -256,6 +284,40 @@ export default function StartOrder() {
                   </div>
                 </div>
               </div>
+              <Modal isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} className="max-w-[420px] p-6">
+                <div className="flex flex-col px-2">
+                  <div>
+                    <h5 className="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl">Agregar persona</h5>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa el nombre de la persona en la mesa.</p>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Nombre</label>
+                    <input
+                      ref={nameInputRef}
+                      type="text"
+                      value={newPersonName}
+                      onChange={(e) => setNewPersonName(e.target.value)}
+                      className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                    />
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                      onClick={() => setIsDialogOpen(false)}
+                      className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleAddPerson}
+                      className="inline-flex items-center rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+              </Modal>
 
               {/* Bottom row (1fr / ~10%) - totals and action buttons (static) */}
               <div className="flex items-center justify-between px-4 py-3">
