@@ -2,6 +2,7 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { useEffect, useState, useRef } from "react";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { useParams, useLocation } from "react-router";
 import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
@@ -18,6 +19,15 @@ export default function StartOrder() {
 //   const [creating, setCreating] = useState(false);
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
+  const [items] = useState(() =>
+    Array.from({ length: 20 }).map((_, i) => ({
+      id: i + 1,
+      name: `Platillo ${i + 1}`,
+      qty: 1,
+      note: "",
+      price: "$0.00",
+    }))
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -109,23 +119,47 @@ export default function StartOrder() {
                 <div className="text-sm text-gray-500 dark:text-gray-400">Comanda</div>
               </div>
 
-              {/* Middle row (8fr / ~80%) - scrollable list/table of dishes */}
-              <div className="overflow-auto min-h-0">
-                <div className="space-y-3">
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02]">
-                      <div>
-                        <div className="text-sm font-medium text-gray-800 dark:text-white/90">Platillo {i + 1}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Descripción breve</div>
-                      </div>
-                      <div className="text-sm text-gray-700 dark:text-gray-300">$0.00</div>
-                    </div>
-                  ))}
+              {/* Middle row (8fr / ~80%) - scrollable table of dishes */}
+              <div className="h-full overflow-auto min-h-0">
+                <div className="h-full overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                  <div className="max-w-full overflow-x-auto h-full">
+                    <Table>
+                    <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+                      <TableRow>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Item
+                        </TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Cant
+                        </TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Nota
+                        </TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Precio
+                        </TableCell>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                      {items.map((it) => (
+                        <TableRow key={it.id}>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start">
+                            <div className="text-sm font-medium text-gray-800 dark:text-white/90">{it.name}</div>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-theme-sm text-gray-700">{it.qty}</TableCell>
+                          <TableCell className="px-4 py-3 text-theme-sm text-gray-500">{it.note}</TableCell>
+                          <TableCell className="px-4 py-3 text-theme-sm text-gray-500">{it.price}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
 
               {/* Bottom row (1fr / ~10%) - totals and action buttons (static) */}
-              <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="flex items-center justify-between px-4 py-3">
                 <div className="text-xs text-gray-500">Nota: revisa los platillos antes de confirmar</div>
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-gray-700 dark:text-gray-300">Total: <span className="font-semibold">$0.00</span></div>
