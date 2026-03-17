@@ -151,7 +151,13 @@ export default function StartOrder() {
               <div className="h-full overflow-auto min-h-0">
                 <div className="h-full overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
                   <div className="max-w-full overflow-x-auto h-full">
-                    <Table>
+                    <Table className="table-fixed">
+                      <colgroup>
+                        <col style={{ width: "55%" }} />
+                        <col style={{ width: "10%" }} />
+                        <col style={{ width: "25%" }} />
+                        <col style={{ width: "10%" }} />
+                      </colgroup>
                     <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                       <TableRow>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -174,7 +180,7 @@ export default function StartOrder() {
                         const personTotal = person.orders.reduce((s, o) => s + parseFloat(o.price.replace(/[^0-9.-]+/g, "")), 0);
                         const isOpen = !!openRows[person.id];
                         return (
-                          <tbody key={person.id}>
+                          <>
                             <TableRow>
                               <TableCell className="px-5 py-4 sm:px-6 text-start">
                                 <button
@@ -208,7 +214,7 @@ export default function StartOrder() {
                                   <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.price}</TableCell>
                                 </TableRow>
                               ))}
-                          </tbody>
+                          </>
                         );
                       })}
                     </TableBody>
