@@ -12,7 +12,6 @@ import UserDetails from "./pages/Admin/Users/UserDetails";
 import ProductsList from "./pages/Admin/Products/ProductsList";
 import ProductDetails from "./pages/Admin/Products/ProductDetails";
 import KDS from "./pages/KDS/KDS";
-import Menu from "./pages/Menu/Menu";
 import Caja from "./pages/Caja/Caja";
 import MapaMesas from "./pages/Mapas/MapaMesas";
 import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
@@ -131,13 +130,7 @@ export default function App() {
               </RequireRole>
             </RequireAuth>
           } />
-          <Route path="menu" element={
-            <RequireAuth>
-              <RequireRole roles={["WAITER", "ADMIN"]}>
-                <Menu />
-              </RequireRole>
-            </RequireAuth>
-          } />
+          {/* 'Menu' page removed */}
           <Route path="mapa-mesas" element={
             <RequireAuth>
               <RequireRole roles={["WAITER", "ADMIN"]}>

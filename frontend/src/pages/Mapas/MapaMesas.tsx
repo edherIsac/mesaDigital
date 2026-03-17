@@ -69,11 +69,8 @@ export default function MapaMesas() {
                         setStarting(m.id);
                         const created = await OrderService.createOrder({ tableId: m.id, items: [] });
                         const orderId = created?._id ?? created?.id ?? created?.orderNumber ?? null;
-                        if (orderId) {
-                          navigate(`/menu?orderId=${encodeURIComponent(orderId)}&tableId=${encodeURIComponent(m.id)}`);
-                        } else {
-                          navigate(`/menu?tableId=${encodeURIComponent(m.id)}`);
-                        }
+                        // 'Menu' page removed — navigate to home after creating the order
+                        navigate(`/`);
                       } catch (err) {
                         // eslint-disable-next-line no-console
                         console.error('Failed to create order', err);
