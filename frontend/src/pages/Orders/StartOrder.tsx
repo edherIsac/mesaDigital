@@ -1,7 +1,7 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
-import { useEffect, useState, useRef } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { ChevronDownIcon } from "../../icons";
 import { useParams, useLocation } from "react-router";
@@ -51,6 +51,13 @@ export default function StartOrder() {
       orders: { id: number; name: string; qty: number; note: string; price: string; type: string }[];
     }[]
   );
+  const productImages = [
+    "/images/product/product-01.jpg",
+    "/images/product/product-02.jpg",
+    "/images/product/product-03.jpg",
+    "/images/product/product-04.jpg",
+    "/images/product/product-05.jpg",
+  ];
   const [openRows, setOpenRows] = useState<Record<number, boolean>>({});
 
   const toggleRow = (id: number) => {
@@ -180,7 +187,7 @@ export default function StartOrder() {
                         const personTotal = person.orders.reduce((s, o) => s + parseFloat(o.price.replace(/[^0-9.-]+/g, "")), 0);
                         const isOpen = !!openRows[person.id];
                         return (
-                          <>
+                          <Fragment key={person.id}>
                             <TableRow>
                               <TableCell className="px-5 py-4 sm:px-6 text-start">
                                 <button
@@ -199,22 +206,28 @@ export default function StartOrder() {
                             </TableRow>
 
                             {isOpen &&
-                              person.orders.map((o) => (
-                                <TableRow key={o.id}>
-                                  <TableCell className="px-5 py-2 sm:px-6 text-start text-sm text-gray-700">
-                                    <div className="ml-6">
-                                      <div className="flex items-center gap-2">
-                                        <div className="text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">{o.type}</div>
+                              person.orders.map((o) => {
+                                const img = productImages[(o.id - 1) % productImages.length];
+                                return (
+                                  <TableRow key={o.id}>
+                                    <TableCell className="px-5 py-2 sm:px-6 text-start text-sm text-gray-700">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 overflow-hidden rounded-full">
+                                          <img width={40} height={40} src={img} alt={o.name} />
+                                        </div>
+                                        <div>
+                                          <div className="text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
+                                          <div className="text-xs text-gray-500 dark:text-gray-400">{o.type}</div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-700">{o.qty}</TableCell>
-                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.note}</TableCell>
-                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.price}</TableCell>
-                                </TableRow>
-                              ))}
-                          </>
+                                    </TableCell>
+                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-700">{o.qty}</TableCell>
+                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.note}</TableCell>
+                                    <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.price}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </Fragment>
                         );
                       })}
                     </TableBody>
