@@ -3,6 +3,7 @@ import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { useEffect, useState, useRef } from "react";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
+import { ChevronDownIcon } from "../../icons";
 import { useParams, useLocation } from "react-router";
 import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
@@ -19,15 +20,42 @@ export default function StartOrder() {
 //   const [creating, setCreating] = useState(false);
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
-  const [items] = useState(() =>
-    Array.from({ length: 20 }).map((_, i) => ({
-      id: i + 1,
-      name: `Platillo ${i + 1}`,
-      qty: 1,
-      note: "",
-      price: "$0.00",
-    }))
+  const [people] = useState(() =>
+    [
+      {
+        id: 1,
+        name: "Ana",
+        orders: [
+          { id: 1, name: "Tacos al pastor", qty: 2, note: "Sin cebolla", price: "$6.00", type: "platillo" },
+          { id: 2, name: "Coca-Cola", qty: 1, note: "", price: "$1.50", type: "bebida" },
+        ],
+      },
+      {
+        id: 2,
+        name: "Luis",
+        orders: [
+          { id: 3, name: "Enchiladas", qty: 1, note: "Extra salsa", price: "$7.00", type: "platillo" },
+          { id: 4, name: "Agua mineral", qty: 1, note: "", price: "$1.00", type: "bebida" },
+        ],
+      },
+      {
+        id: 3,
+        name: "María",
+        orders: [
+          { id: 5, name: "Sopa", qty: 1, note: "Caliente", price: "$5.00", type: "platillo" },
+        ],
+      },
+    ] as {
+      id: number;
+      name: string;
+      orders: { id: number; name: string; qty: number; note: string; price: string; type: string }[];
+    }[]
   );
+  const [openRows, setOpenRows] = useState<Record<number, boolean>>({});
+
+  const toggleRow = (id: number) => {
+    setOpenRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -142,16 +170,47 @@ export default function StartOrder() {
                     </TableHeader>
 
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      {items.map((it) => (
-                        <TableRow key={it.id}>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start">
-                            <div className="text-sm font-medium text-gray-800 dark:text-white/90">{it.name}</div>
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-theme-sm text-gray-700">{it.qty}</TableCell>
-                          <TableCell className="px-4 py-3 text-theme-sm text-gray-500">{it.note}</TableCell>
-                          <TableCell className="px-4 py-3 text-theme-sm text-gray-500">{it.price}</TableCell>
-                        </TableRow>
-                      ))}
+                      {people.map((person) => {
+                        const personTotal = person.orders.reduce((s, o) => s + parseFloat(o.price.replace(/[^0-9.-]+/g, "")), 0);
+                        const isOpen = !!openRows[person.id];
+                        return (
+                          <tbody key={person.id}>
+                            <TableRow>
+                              <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                <button
+                                  onClick={() => toggleRow(person.id)}
+                                  aria-expanded={isOpen}
+                                  className="inline-flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-white/90"
+                                >
+                                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "-rotate-180 text-brand-500" : ""}`} />
+                                  {person.name}
+                                </button>
+                              </TableCell>
+
+                              <TableCell className="px-4 py-3 text-theme-sm text-gray-700">{person.orders.length}</TableCell>
+                              <TableCell className="px-4 py-3 text-theme-sm text-gray-500">&nbsp;</TableCell>
+                              <TableCell className="px-4 py-3 text-theme-sm text-gray-500">${personTotal.toFixed(2)}</TableCell>
+                            </TableRow>
+
+                            {isOpen &&
+                              person.orders.map((o) => (
+                                <TableRow key={o.id}>
+                                  <TableCell className="px-5 py-2 sm:px-6 text-start text-sm text-gray-700">
+                                    <div className="ml-6">
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">{o.type}</div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-700">{o.qty}</TableCell>
+                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.note}</TableCell>
+                                  <TableCell className="px-4 py-2 text-theme-sm text-gray-500">{o.price}</TableCell>
+                                </TableRow>
+                              ))}
+                          </tbody>
+                        );
+                      })}
                     </TableBody>
                     </Table>
                   </div>
