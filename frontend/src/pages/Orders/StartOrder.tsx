@@ -68,6 +68,19 @@ export default function StartOrder() {
     setOpenRows((prev) => (prev[id] ? {} : { [id]: true }));
   };
 
+  const addDish = (personId: number) => {
+    setPeople((prev) => {
+      const maxOrderId = prev.reduce((m, p) => {
+        const pMax = p.orders.reduce((mm, o) => Math.max(mm, o.id), 0);
+        return Math.max(m, pMax);
+      }, 0);
+      const newId = maxOrderId + 1;
+      const newOrder = { id: newId, name: `Nuevo platillo`, qty: 1, note: "", price: "$0.00", type: "platillo" };
+      return prev.map((p) => (p.id === personId ? { ...p, orders: [...p.orders, newOrder] } : p));
+    });
+    setOpenRows({ [personId]: true });
+  };
+
   const openAddPersonDialog = () => {
     setNewPersonName(`Persona ${people.length + 1}`);
     setIsDialogOpen(true);
@@ -276,6 +289,37 @@ export default function StartOrder() {
                                   </TableRow>
                                 );
                               })}
+
+                            {/* Add-row: collapsible with the group's items */}
+                            <TableRow key={`add-${person.id}`} className={isOpen ? 'bg-white/[0.02] dark:bg-white/[0.01]' : ''}>
+                              <TableCell className="px-5 py-0 sm:px-6 text-start text-sm text-gray-700">
+                                <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="py-2">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); addDish(person.id); }}
+                                      className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50 dark:hover:bg-white/[0.02]"
+                                    >
+                                      + Agregar platillo
+                                    </button>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-0 text-theme-sm text-gray-700">
+                                <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="py-2">&nbsp;</div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-0 text-theme-sm text-gray-500">
+                                <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="py-2">&nbsp;</div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-4 py-0 text-theme-sm text-gray-500">
+                                <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="py-2">&nbsp;</div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
                           </Fragment>
                         );
                       })}
