@@ -102,9 +102,38 @@ export default function StartOrder() {
           </ComponentCard>
         </div>
         <div ref={dynamicRef} className="mt-4" style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}>
-          <ComponentCard className="w-full h-full" title={"Comanda"} desc={""} fillHeight>
-            <div className="p-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Aquí irá el contenido de la comanda (lista de artículos, notas, etc.).</p>
+          <ComponentCard className="w-full h-full" noHeader fillHeight>
+            <div className="h-full grid min-h-0" style={{ gridTemplateRows: "1fr 8fr 1fr" }}>
+              {/* Top row (1fr / ~10%) */}
+              <div className="flex items-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">Comanda</div>
+              </div>
+
+              {/* Middle row (8fr / ~80%) - scrollable list/table of dishes */}
+              <div className="overflow-auto min-h-0">
+                <div className="space-y-3">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                      <div>
+                        <div className="text-sm font-medium text-gray-800 dark:text-white/90">Platillo {i + 1}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Descripción breve</div>
+                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">$0.00</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom row (1fr / ~10%) - totals and action buttons (static) */}
+              <div className="flex items-center justify-between px-4 py-3 border-t">
+                <div className="text-xs text-gray-500">Nota: revisa los platillos antes de confirmar</div>
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">Total: <span className="font-semibold">$0.00</span></div>
+                  <button className="inline-flex items-center rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600">
+                    Colocar comanda
+                  </button>
+                </div>
+              </div>
             </div>
           </ComponentCard>
         </div>

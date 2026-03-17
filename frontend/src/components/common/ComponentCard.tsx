@@ -1,5 +1,5 @@
 interface ComponentCardProps {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   className?: string; // Additional custom classes for styling
   desc?: string; // Description text
@@ -9,7 +9,7 @@ interface ComponentCardProps {
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
-  title,
+  title = "",
   children,
   className = "",
   desc = "",
@@ -18,7 +18,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   fillHeight = false,
 }) => {
   const outerClass = `rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${fillHeight ? "flex flex-col h-full" : ""} ${className}`;
-  const bodyClass = `${fillHeight ? "flex-1 overflow-auto" : ""} p-4 sm:p-6 ${noHeader ? "" : "border-t border-gray-100 dark:border-gray-800"}`;
+  const bodyClass = `${fillHeight ? "flex-1 min-h-0" : ""} p-4 sm:p-6 ${noHeader ? "" : "border-t border-gray-100 dark:border-gray-800"}`;
 
   return (
     <div
@@ -53,7 +53,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
 
       {/* Card Body */}
       <div data-card-body className={bodyClass}>
-        <div className="space-y-6">{children}</div>
+        <div className={`${fillHeight ? 'h-full min-h-0 ' : ''}space-y-6`}>{children}</div>
       </div>
     </div>
   );
