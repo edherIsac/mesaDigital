@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router";
 
 type SidebarContextType = {
   isExpanded: boolean;
@@ -32,6 +33,8 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const location = useLocation();
+  const prevExpandedRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -61,6 +64,26 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   const toggleSubmenu = (item: string) => {
     setOpenSubmenu((prev) => (prev === item ? null : item));
   };
+
+  useEffect(() => {
+    const path = location.pathname || "";
+    console.debug("[SidebarContext] pathname:", path, "isMobile:", isMobile, "isExpanded:", isExpanded, "prevSaved:", prevExpandedRef.current);
+    if (path.startsWith("/orders/start")) {
+      if (prevExpandedRef.current === null) prevExpandedRef.current = isExpanded;
+      if (isExpanded) {
+        console.debug("[SidebarContext] collapsing sidebar for orders.start; saved:", prevExpandedRef.current);
+        setIsExpanded(false);
+      } else {
+        console.debug("[SidebarContext] sidebar already collapsed");
+      }
+    } else {
+      if (prevExpandedRef.current !== null) {
+        console.debug("[SidebarContext] restoring sidebar to:", prevExpandedRef.current);
+        setIsExpanded(prevExpandedRef.current);
+        prevExpandedRef.current = null;
+      }
+    }
+  }, [location.pathname, isExpanded, isMobile]);
 
   return (
     <SidebarContext.Provider
