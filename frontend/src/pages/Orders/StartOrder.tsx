@@ -9,6 +9,7 @@ import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import { Product } from "../Admin/Products/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
+import { itemStatusLabel } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "./Comanda.interface";
 import OrderService from "./Order.service";
 import { CreateOrderDto } from "./Order.service";
@@ -162,6 +163,8 @@ export default function StartOrder() {
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
     }
   };
+
+    // itemStatusLabel is centralized in ../../constants/statuses
 
   const openAddPersonDialog = () => {
     setNewPersonName(`Persona ${people.length + 1}`);
@@ -628,7 +631,7 @@ export default function StartOrder() {
                                       {o.type}
                                     </span>
                                     <span className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${itemStatusClass(o.status)}`}>
-                                      {o.status ?? 'pending'}
+                                      {itemStatusLabel(o.status)}
                                     </span>
                                   </div>
                                 </div>
