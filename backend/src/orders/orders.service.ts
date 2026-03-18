@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, Types, ClientSession } from 'mongoose';
 import { Order, OrderDocument } from './schemas/order.schema';
+import { Table, TableDocument } from './schemas/table.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateItemStatusDto } from './dto/update-item-status.dto';
@@ -10,6 +11,7 @@ import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 export class OrdersService {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(Table.name) private tableModel: Model<TableDocument>,
   ) {}
 
   async create(createDto: CreateOrderDto) {
@@ -49,14 +51,14 @@ export class OrdersService {
       }
     }
 
-    const created = await this.orderModel.create({
+    // Build the order document payload once so it can be reused for transactional
+    // and non-transactional flows.
+    const orderDoc: Partial<Order> = {
       orderNumber,
-      // locationId is optional now; only set if provided
       ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
       tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
       type: createDto.type || 'dine_in',
       items: items || [],
-      // store people if provided to preserve comanda structure
       ...( (createDto as any).people ? { people: (createDto as any).people } : {} ),
       subtotal,
       tax: 0,
@@ -64,9 +66,80 @@ export class OrdersService {
       placedAt: now,
       notes: createDto.notes,
       priority: createDto.priority || 'normal',
-    } as Partial<Order>);
+    } as Partial<Order>;
 
-    return created;
+    let session: ClientSession | null = null;
+    try {
+      session = await this.orderModel.db.startSession();
+      session.startTransaction();
+
+      const createdDocs = await this.orderModel.create([orderDoc], { session });
+      const created = Array.isArray(createdDocs) ? createdDocs[0] : createdDocs;
+
+      if (createDto.tableId) {
+        const tId = new Types.ObjectId(createDto.tableId);
+        const updatedTable = await this.tableModel
+          .findByIdAndUpdate(tId, { $set: { currentOrderId: created._id, status: 'occupied' } }, { new: true, session })
+          .exec();
+        if (!updatedTable) throw new NotFoundException('Table not found when updating after order create');
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+      return created;
+    } catch (err: any) {
+      // Clean up session if it was started
+      if (session) {
+        try {
+          await session.abortTransaction();
+        } catch (e) {
+          // ignore
+        }
+        try {
+          session.endSession();
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // If transactions are not supported on this server (common in local dev single-node),
+      // fall back to a best-effort non-transactional flow: create order, then update table.
+      const isTransactionNotSupported =
+        err && (err.code === 20 || (typeof err.message === 'string' && err.message.includes('Transaction numbers are only allowed')));
+      if (isTransactionNotSupported) {
+        // Non-transactional create
+        const created = await this.orderModel.create(orderDoc as any);
+        if (createDto.tableId) {
+          const tId = new Types.ObjectId(createDto.tableId);
+          try {
+            const updatedTable = await this.tableModel
+              .findByIdAndUpdate(tId, { $set: { currentOrderId: created._id, status: 'occupied' } }, { new: true })
+              .exec();
+            if (!updatedTable) {
+              // rollback: delete created order
+              try {
+                await this.orderModel.findByIdAndDelete(created._id).exec();
+              } catch (delErr) {
+                // log and continue throwing the original error
+                console.error('Failed to rollback order after table update failure', delErr);
+              }
+              throw new NotFoundException('Table not found when updating after order create');
+            }
+          } catch (upErr) {
+            // If updating the table fails, ensure we removed the created order or at least log.
+            try {
+              await this.orderModel.findByIdAndDelete(created._id).exec();
+            } catch (delErr) {
+              console.error('Failed to rollback order after table update failure', delErr);
+            }
+            throw upErr;
+          }
+        }
+        return created;
+      }
+
+      throw err;
+    }
   }
 
   async findAll(query: { locationId?: string; status?: string }) {

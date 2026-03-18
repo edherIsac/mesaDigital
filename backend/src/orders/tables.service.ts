@@ -3,12 +3,25 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Table, TableDocument } from './schemas/table.schema';
 
+function normalizeStatus(s?: string): string | undefined {
+  if (!s || typeof s !== 'string') return undefined;
+  const st = s.trim().toLowerCase();
+  if (st === 'active') return 'available';
+  if (st === 'disponible' || st === 'available') return 'available';
+  if (st === 'ocupada' || st === 'ocupado' || st === 'occupied') return 'occupied';
+  if (st === 'reservada' || st === 'reserved') return 'reserved';
+  if (st === 'blocked' || st === 'bloqueada' || st === 'bloqueado') return 'blocked';
+  return st;
+}
+
 @Injectable()
 export class TablesService {
   constructor(@InjectModel(Table.name) private tableModel: Model<TableDocument>) {}
 
   async create(dto: Partial<Table>) {
-    const created = await this.tableModel.create(dto as any);
+    const toCreate: any = { ...(dto as any) };
+    if (toCreate.status) toCreate.status = normalizeStatus(String(toCreate.status)) ?? toCreate.status;
+    const created = await this.tableModel.create(toCreate as any);
     return created;
   }
 
@@ -25,7 +38,9 @@ export class TablesService {
 
   async update(id: string, dto: Partial<Table>) {
     if (!id || !Types.ObjectId.isValid(id)) throw new NotFoundException('Table not found');
-    const updated = await this.tableModel.findByIdAndUpdate(id, { $set: dto }, { new: true }).exec();
+    const toSet: any = { ...(dto as any) };
+    if (toSet.status) toSet.status = normalizeStatus(String(toSet.status)) ?? toSet.status;
+    const updated = await this.tableModel.findByIdAndUpdate(id, { $set: toSet }, { new: true }).exec();
     if (!updated) throw new NotFoundException('Table not found after update');
     return updated;
   }

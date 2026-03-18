@@ -8,9 +8,36 @@ import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import { Product } from "../Admin/Products/Product.interface";
+import ProductService from "../Admin/Products/Product.service";
 import type { Comanda, ComandaPerson, ComandaTotals } from "./Comanda.interface";
 import OrderService from "./Order.service";
 import { CreateOrderDto } from "./Order.service";
+
+// Backend response shapes (local types)
+type BackendOrderItem = {
+  _id?: string;
+  menuItemId?: string;
+  name?: string;
+  quantity?: number;
+  qty?: number;
+  notes?: string;
+  note?: string;
+  unitPrice?: number;
+  price?: number;
+  status?: string;
+};
+
+type BackendPerson = {
+  id?: string;
+  name?: string;
+  orders?: BackendOrderItem[];
+  seat?: number;
+};
+
+type BackendOrder = {
+  people?: BackendPerson[];
+  items?: BackendOrderItem[];
+};
 // Order creation handled elsewhere; page shows header info only for now
 
 export default function StartOrder() {
@@ -105,6 +132,7 @@ export default function StartOrder() {
         note,
         unitPrice: product.price ?? 0,
         type: "platillo",
+        status: 'pending',
       }));
       return prev.map((p) => (p.id === personToAddFor ? { ...p, orders: [...p.orders, ...additions] } : p));
     });
@@ -112,6 +140,22 @@ export default function StartOrder() {
     setPersonToAddFor(null);
     setPendingSelection(null);
     setProductDialogOpen(false);
+  };
+
+  const itemStatusClass = (s?: string) => {
+    const st = (s || 'pending').toLowerCase();
+    switch (st) {
+      case 'preparing':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300';
+      case 'ready':
+        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300';
+      case 'served':
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-700/20 dark:text-gray-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300';
+      default:
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+    }
   };
 
   const openAddPersonDialog = () => {
@@ -141,22 +185,117 @@ export default function StartOrder() {
 
   useEffect(() => {
     let mounted = true;
-    if (!mesa && tableId) {
-      MesaService.fetchMesas()
-        .then((list) => {
-          if (!mounted) return;
-          const found = list.find((t) => t.id === tableId) ?? null;
-          setMesa(found);
-        })
-        .finally(() => {
-          if (!mounted) return;
-          setLoading(false);
-        });
-    }
+    if (!tableId) return () => { mounted = false; };
+
+    // Always fetch the latest mesa from the backend so that the
+    // `currentOrderId` / `status` are the authoritative values and
+    // other users (meseros) can load the correct comanda.
+    MesaService.fetchMesaById(tableId)
+      .then((found: Mesa | null) => {
+        if (!mounted) return;
+        setMesa(found ?? null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setMesa(null);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+
     return () => {
       mounted = false;
     };
-  }, [tableId, mesa]);
+  }, [tableId]);
+
+  // If the mesa has an associated order, load it and populate UI
+  useEffect(() => {
+    let mounted = true;
+    const loadOrderForMesa = async (mid?: string) => {
+      if (!mid) return;
+      try {
+        const order = (await OrderService.getOrder(mid)) as BackendOrder;
+        if (!mounted || !order) return;
+        // Map backend order -> ComandaPerson[] for UI
+        const mappedPeople: ComandaPerson[] = [];
+        if (order.people && Array.isArray(order.people) && order.people.length > 0) {
+          for (const p of order.people as BackendPerson[]) {
+            const mappedOrders = (p.orders || []).map((o: BackendOrderItem, oi: number) => ({
+              id: o._id ?? `${p.id ?? 'p'}-${oi}`,
+              productId: o.menuItemId ? String(o.menuItemId) : undefined,
+              product: null,
+              name: o.name ?? '',
+              qty: o.quantity ?? o.qty ?? 1,
+              note: o.notes ?? o.note ?? "",
+              unitPrice: o.unitPrice ?? o.price ?? 0,
+              type: 'platillo',
+              coverImage: undefined,
+              status: o.status ?? 'pending',
+            }));
+            mappedPeople.push({ id: p.id ?? String(mappedPeople.length + 1), name: p.name ?? '', seat: p.seat, orders: mappedOrders });
+          }
+        } else if (order.items && Array.isArray(order.items)) {
+          // fallback: single-person comanda with all items
+          const mappedOrders = (order.items || []).map((o: BackendOrderItem, oi: number) => ({
+            id: o._id ?? `i-${oi}`,
+            productId: o.menuItemId ? String(o.menuItemId) : undefined,
+            product: null,
+            name: o.name ?? '',
+            qty: o.quantity ?? o.qty ?? 1,
+            note: o.notes ?? o.note ?? "",
+            unitPrice: o.unitPrice ?? o.price ?? 0,
+            type: 'platillo',
+            coverImage: undefined,
+            status: o.status ?? 'pending',
+          }));
+          mappedPeople.push({ id: 1, name: 'Mesa', orders: mappedOrders });
+        }
+
+        // If some items reference a menuItemId, fetch their product to get coverImage
+        try {
+          const ids = new Set<string>();
+          for (const p of mappedPeople) {
+            for (const it of p.orders) {
+              if (!it.coverImage && it.productId) ids.add(String(it.productId));
+            }
+          }
+          if (ids.size > 0) {
+            const fetches = Array.from(ids).map((id) =>
+              ProductService.fetchProductById(id).then((prod) => prod).catch(() => null),
+            );
+            const products = await Promise.all(fetches);
+            const coverById = new Map<string, string | undefined>();
+            products.forEach((prod) => {
+              if (prod && prod.id) coverById.set(String(prod.id), prod.coverImage ?? undefined);
+            });
+
+            const withImages = mappedPeople.map((p) => ({
+              ...p,
+              orders: p.orders.map((it) => ({
+                ...it,
+                coverImage: it.coverImage ?? (it.productId ? coverById.get(String(it.productId)) : undefined),
+              })),
+            }));
+            if (mounted) setPeople(withImages);
+          } else {
+            if (mounted) setPeople(mappedPeople);
+          }
+        } catch (imgErr) {
+          // If image fetching fails, still set the mapped people
+          if (mounted) setPeople(mappedPeople);
+        }
+      } catch (err) {
+        // ignore, maybe not found
+        console.warn('Could not load order for mesa', err);
+      }
+    };
+
+    if (mesa?.currentOrderId) loadOrderForMesa(mesa.currentOrderId);
+    return () => {
+      mounted = false;
+    };
+  }, [mesa?.currentOrderId]);
 
   // no start button on this screen; order creation handled elsewhere
 
@@ -188,6 +327,13 @@ export default function StartOrder() {
     const discount = 0;
     const total = subtotal + taxes + service - discount;
     return { subtotal, taxes, service, discount, total };
+  };
+
+  const mesaStatusLabel = (s?: string) => {
+    const st = (s || 'available').toLowerCase();
+    if (st === 'occupied') return 'Ocupada';
+    if (st === 'available') return 'Disponible';
+    return st.charAt(0).toUpperCase() + st.slice(1);
   };
 
   const comanda: Comanda = {
@@ -240,6 +386,10 @@ export default function StartOrder() {
 
       const created = await OrderService.createOrder(payload);
       console.debug("Order created", created);
+      // update local mesa to reflect newly assigned order (so UI/map can show immediate change)
+      if (created && created._id && mesa) {
+        setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
+      }
       // After creating, navigate back to orders list or table view
       navigate(-1);
     } catch (err) {
@@ -328,7 +478,7 @@ export default function StartOrder() {
                   <div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Estado</div>
                     <div className="mt-1 inline-flex items-center rounded-full bg-brand-50 text-brand-500 px-3 py-1 text-xs font-medium dark:bg-brand-500/15 dark:text-brand-300">
-                      Disponible
+                      {mesaStatusLabel(mesa?.status)}
                     </div>
                   </div>
                 </div>
@@ -444,9 +594,14 @@ export default function StartOrder() {
                                 </div>
                                 <div className="min-w-0">
                                   <div className="truncate text-sm font-medium text-gray-800 dark:text-white/90">{o.name}</div>
-                                  <span className="mt-0.5 inline-block rounded-full bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
-                                    {o.type}
-                                  </span>
+                                  <div className="mt-0.5 flex items-center gap-2">
+                                    <span className="inline-block rounded-full bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                                      {o.type}
+                                    </span>
+                                    <span className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${itemStatusClass(o.status)}`}>
+                                      {o.status ?? 'pending'}
+                                    </span>
+                                  </div>
                                 </div>
 
                                 {/* Decrement button */}

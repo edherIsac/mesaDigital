@@ -11,6 +11,19 @@ export default function MapaMesas() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const mesaStatusLabel = (s?: string) => {
+    const st = (s || 'available').toLowerCase();
+    if (st === 'occupied') return 'Ocupada';
+    if (st === 'available') return 'Disponible';
+    return st.charAt(0).toUpperCase() + st.slice(1);
+  };
+
+  const statusBadgeClass = (s?: string) => {
+    const st = (s || 'available').toLowerCase();
+    if (st === 'occupied') return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300';
+    return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-gray-300';
+  };
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -63,12 +76,15 @@ export default function MapaMesas() {
                 <ComponentCard
                   key={m.id}
                   title={m.label}
-                  desc={`Asientos: ${m.seats ?? "-"}`}
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  desc={`Asientos: ${m.seats ?? "-"} · ${mesaStatusLabel(m.status)}`}
+                  className={`cursor-pointer hover:shadow-lg transition-shadow ${m.status === 'occupied' ? 'ring-1 ring-yellow-400/20' : ''}`}
                   onClick={() => goToStartOrder(m)}
                 >
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Zona: {m.zone ?? "-"}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Zona: {m.zone ?? "-"}</div>
+                    <div className="ml-2">
+                      <span className={statusBadgeClass(m.status)}>{mesaStatusLabel(m.status)}</span>
+                    </div>
                   </div>
                 </ComponentCard>
               ))}

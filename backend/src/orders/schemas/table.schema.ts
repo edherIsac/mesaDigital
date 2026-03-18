@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type TableDocument = Table & Document;
 
@@ -13,6 +13,12 @@ export class Table {
 
   @Prop()
   zone?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Order', required: false })
+  currentOrderId?: Types.ObjectId;
+
+  @Prop({ default: 'available', enum: ['available', 'occupied', 'reserved', 'blocked'] })
+  status?: string;
 }
 
 export const TableSchema = SchemaFactory.createForClass(Table);

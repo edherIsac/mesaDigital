@@ -6,6 +6,7 @@ export interface CreateOrderItemDto {
   quantity: number;
   unitPrice?: number;
   notes?: string;
+  status?: string;
 }
 
 export interface CreatePersonDto {
@@ -30,5 +31,10 @@ export async function createOrder(body: CreateOrderDto) {
   return res.data;
 }
 
-const OrderService = { createOrder };
+export async function getOrder(id: string) {
+  const res = await api.get(`/orders/${id}`);
+  return res.data;
+}
+
+const OrderService = { createOrder, getOrder };
 export default OrderService;

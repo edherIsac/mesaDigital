@@ -12,6 +12,7 @@ export interface ComandaItem {
   unitPrice: number; // precio unitario (número, sin formato)
   type?: string; // tipo/etiqueta ("platillo", "bebida", ...)
   coverImage?: string | null; // url imagen
+  status?: string; // estado del ítem (pending, preparing, ready, served, ...)
 }
 
 // Representa una persona / asiento dentro de la comanda

@@ -4,4 +4,6 @@ export interface Mesa {
   seats?: number;
   zone?: string;
   createdAt?: string;
+  currentOrderId?: string;
+  status?: string;
 }
