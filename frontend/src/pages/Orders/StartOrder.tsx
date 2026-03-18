@@ -8,6 +8,9 @@ import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import { Product } from "../Admin/Products/Product.interface";
+import type { Comanda, ComandaPerson, ComandaTotals } from "./Comanda.interface";
+import OrderService from "./Order.service";
+import { CreateOrderDto } from "./Order.service";
 // Order creation handled elsewhere; page shows header info only for now
 
 export default function StartOrder() {
@@ -22,11 +25,7 @@ export default function StartOrder() {
 //   const [creating, setCreating] = useState(false);
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
-  const [people, setPeople] = useState<{
-    id: number;
-    name: string;
-    orders: { id: number; productId?: string; coverImage?: string; name: string; qty: number; note: string; unitPrice: number; type: string }[];
-  }[]>([]);
+  const [people, setPeople] = useState<ComandaPerson[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -93,7 +92,7 @@ export default function StartOrder() {
     if (!personToAddFor || !pendingSelection) return;
     setPeople((prev) => {
       const maxOrderId = prev.reduce((m, p) => {
-        const pMax = p.orders.reduce((mm, o) => Math.max(mm, o.id), 0);
+        const pMax = p.orders.reduce((mm, o) => Math.max(mm, o.id as number), 0);
         return Math.max(m, pMax);
       }, 0);
       let nextId = maxOrderId + 1;
@@ -133,7 +132,7 @@ export default function StartOrder() {
 
   const handleAddPerson = () => {
     const name = newPersonName.trim() || `Persona ${people.length + 1}`;
-    const newId = (people.reduce((m, p) => Math.max(m, p.id), 0) || 0) + 1;
+    const newId = (people.reduce((m, p) => Math.max(m, p.id as number), 0) || 0) + 1;
     const newPerson = { id: newId, name, orders: [] };
     setPeople((prev) => [...prev, newPerson]);
     setOpenRows({ [newId]: true });
@@ -179,10 +178,77 @@ export default function StartOrder() {
     };
   }, []);
 
-  const comandaTotal = people.reduce(
-    (sum, p) => sum + p.orders.reduce((s, o) => s + ((o.unitPrice ?? 0) * (o.qty ?? 1)), 0),
-    0,
-  );
+  const computeTotals = (persons: ComandaPerson[]): ComandaTotals => {
+    const subtotal = persons.reduce(
+      (sum, p) => sum + p.orders.reduce((s, o) => s + ((o.unitPrice ?? 0) * (o.qty ?? 1)), 0),
+      0,
+    );
+    const taxes = 0;
+    const service = 0;
+    const discount = 0;
+    const total = subtotal + taxes + service - discount;
+    return { subtotal, taxes, service, discount, total };
+  };
+
+  const comanda: Comanda = {
+    id: undefined,
+    tableId: tableId ?? undefined,
+    table: mesa,
+    people,
+    totals: computeTotals(people),
+    currency: "$",
+    status: "draft",
+  };
+
+  const [placing, setPlacing] = useState(false);
+
+  const handlePlaceComanda = async () => {
+    if (placing) return;
+    setPlacing(true);
+    try {
+      // Build items (flatten) and people payload
+      const items = people.flatMap((p) =>
+        p.orders.map((o) => ({
+          menuItemId: o.productId,
+          name: o.name,
+          quantity: o.qty ?? 1,
+          unitPrice: o.unitPrice ?? 0,
+          notes: o.note,
+        })),
+      );
+
+      const peoplePayload = people.map((p) => ({
+        id: String(p.id),
+        name: p.name,
+        seat: p.seat,
+        orders: p.orders.map((o) => ({
+          menuItemId: o.productId,
+          name: o.name,
+          quantity: o.qty ?? 1,
+          unitPrice: o.unitPrice ?? 0,
+          notes: o.note,
+        })),
+      }));
+
+      const payload: CreateOrderDto = {
+        tableId: tableId,
+        type: "dine_in",
+        items,
+        people: peoplePayload,
+        notes: undefined,
+      };
+
+      const created = await OrderService.createOrder(payload);
+      console.debug("Order created", created);
+      // After creating, navigate back to orders list or table view
+      navigate(-1);
+    } catch (err) {
+      console.error("Error placing comanda:", err);
+      // TODO: show UI error
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   return (
     <div>
@@ -300,7 +366,7 @@ export default function StartOrder() {
                     (s, o) => s + ((o.unitPrice ?? 0) * (o.qty ?? 1)),
                     0,
                   );
-                  const isOpen = !!openRows[person.id];
+                  const isOpen = !!openRows[person.id as number];
                   const initials = person.name
                     .split(" ")
                     .map((w) => w[0])
@@ -314,7 +380,7 @@ export default function StartOrder() {
                       {/* Person header */}
                       <button
                         type="button"
-                        onClick={() => toggleRow(person.id)}
+                        onClick={() => toggleRow(person.id as number)}
                         aria-expanded={isOpen}
                         className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
                           ${isOpen
@@ -335,7 +401,7 @@ export default function StartOrder() {
                           {person.name}
                         </span>
                         <span className="rounded-full bg-gray-200/80 dark:bg-white/[0.08] px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400 shrink-0">
-                          {person.orders.length} {person.orders.length === 1 ? "item" : "items"}
+                          {person.orders.length} {person.orders.length === 1 ? "platillo" : "platillos"}
                         </span>
                         <span className="w-16 shrink-0 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
                           ${personTotal.toFixed(2)}
@@ -366,7 +432,7 @@ export default function StartOrder() {
 
                           {/* Item rows */}
                           {person.orders.map((o) => {
-                            const img = o.coverImage ?? productImages[(o.id - 1) % productImages.length];
+                            const img = o.coverImage ?? productImages[((o.id as number) - 1) % productImages.length];
                             return (
                               <div
                                 key={o.id}
@@ -388,7 +454,7 @@ export default function StartOrder() {
                                   <button
                                     type="button"
                                     aria-label={`Disminuir cantidad de ${o.name}`}
-                                    onClick={(e) => { e.stopPropagation(); changeQty(person.id, o.id, -1); }}
+                                    onClick={(e) => { e.stopPropagation(); changeQty(person.id as number, o.id as number, -1); }}
                                     className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.02] disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={(o.qty || 1) <= 1}
                                   >
@@ -408,7 +474,7 @@ export default function StartOrder() {
                                   <button
                                     type="button"
                                     aria-label={`Aumentar cantidad de ${o.name}`}
-                                    onClick={(e) => { e.stopPropagation(); changeQty(person.id, o.id, +1); }}
+                                    onClick={(e) => { e.stopPropagation(); changeQty(person.id as number, o.id as number, +1); }}
                                     className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.02]"
                                   >
                                     +
@@ -432,7 +498,7 @@ export default function StartOrder() {
                           <div className="px-4 py-2.5">
                             <button
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); addDish(person.id); }}
+                              onClick={(e) => { e.stopPropagation(); addDish(person.id as number); }}
                               className="inline-flex items-center gap-2 rounded-lg border border-dashed border-brand-300 dark:border-brand-700 px-3 py-1.5 text-sm font-medium text-brand-500 dark:text-brand-400 hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -452,7 +518,7 @@ export default function StartOrder() {
               <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div>
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
-                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{`$${comandaTotal.toFixed(2)}`}</div>
+                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{`$${comanda.totals.total.toFixed(2)}`}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -461,11 +527,15 @@ export default function StartOrder() {
                   >
                     Cancelar
                   </button>
-                  <button className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
+                  <button
+                    onClick={handlePlaceComanda}
+                    disabled={placing}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    Colocar comanda
+                    {placing ? 'Enviando...' : 'Colocar comanda'}
                   </button>
                 </div>
               </div>

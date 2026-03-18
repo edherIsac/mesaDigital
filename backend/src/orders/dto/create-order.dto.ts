@@ -1,6 +1,7 @@
 import { IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateOrderItemDto } from './create-order-item.dto';
+import { CreatePersonDto } from './create-person.dto';
 
 export class CreateOrderDto {
   @IsString()
@@ -20,6 +21,12 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items?: CreateOrderItemDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreatePersonDto)
+  people?: CreatePersonDto[];
 
   @IsString()
   @IsOptional()

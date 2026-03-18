@@ -67,6 +67,23 @@ export class OrderItem {
 
 export const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
+@Schema()
+export class Person {
+  @Prop({ type: String })
+  id?: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ type: [OrderItemSchema], default: [] })
+  orders: OrderItem[];
+
+  @Prop({ default: 0 })
+  seat?: number;
+}
+
+export const PersonSchema = SchemaFactory.createForClass(Person);
+
 @Schema({ timestamps: true })
 export class Order {
   @Prop({ unique: true, index: true })
@@ -86,6 +103,9 @@ export class Order {
 
   @Prop({ type: [OrderItemSchema], default: [] })
   items: OrderItem[];
+
+  @Prop({ type: [PersonSchema], default: [] })
+  people: Person[];
 
   @Prop({ default: 0 })
   subtotal: number;

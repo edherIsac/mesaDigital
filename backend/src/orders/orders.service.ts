@@ -15,10 +15,33 @@ export class OrdersService {
   async create(createDto: CreateOrderDto) {
     const orderNumber = `ODR-${Date.now()}`;
     const now = new Date();
+    // Normalize items: support both `items` (flat) and `people` (comanda style)
+    let items = createDto.items || [];
+    if ((!items || items.length === 0) && (createDto as any).people) {
+      // flatten people -> items
+      const people = (createDto as any).people as any[];
+      const flat: any[] = [];
+      for (const p of people) {
+        const orders = p.orders || [];
+        for (const o of orders) {
+          const mapped = {
+            menuItemId: o.menuItemId,
+            name: o.name,
+            quantity: o.quantity || o.qty || 1,
+            unitPrice: o.unitPrice ?? o.price ?? 0,
+            modifiers: o.modifiers || [],
+            notes: o.notes || o.note || undefined,
+            stationId: o.stationId,
+          };
+          flat.push(mapped);
+        }
+      }
+      items = flat;
+    }
 
     // Basic totals calculation
     let subtotal = 0;
-    for (const it of createDto.items || []) {
+    for (const it of items || []) {
       const price = it.unitPrice || 0;
       subtotal += price * (it.quantity || 1);
       if (it.modifiers) {
@@ -32,7 +55,9 @@ export class OrdersService {
       ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
       tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
       type: createDto.type || 'dine_in',
-      items: createDto.items || [],
+      items: items || [],
+      // store people if provided to preserve comanda structure
+      ...( (createDto as any).people ? { people: (createDto as any).people } : {} ),
       subtotal,
       tax: 0,
       total: subtotal,
