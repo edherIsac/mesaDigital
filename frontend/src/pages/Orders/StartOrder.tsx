@@ -25,7 +25,7 @@ export default function StartOrder() {
   const [people, setPeople] = useState<{
     id: number;
     name: string;
-    orders: { id: number; productId?: string; coverImage?: string; name: string; qty: number; note: string; price: string; type: string }[];
+    orders: { id: number; productId?: string; coverImage?: string; name: string; qty: number; note: string; unitPrice: number; type: string }[];
   }[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
@@ -104,7 +104,7 @@ export default function StartOrder() {
         name: product.name,
         qty,
         note,
-        price: `$${(product.price ?? 0).toFixed(2)}`,
+        unitPrice: product.price ?? 0,
         type: "platillo",
       }));
       return prev.map((p) => (p.id === personToAddFor ? { ...p, orders: [...p.orders, ...additions] } : p));
@@ -178,6 +178,11 @@ export default function StartOrder() {
       if (ro) ro.disconnect();
     };
   }, []);
+
+  const comandaTotal = people.reduce(
+    (sum, p) => sum + p.orders.reduce((s, o) => s + ((o.unitPrice ?? 0) * (o.qty ?? 1)), 0),
+    0,
+  );
 
   return (
     <div>
@@ -292,7 +297,7 @@ export default function StartOrder() {
               <div className="flex-1 overflow-y-auto min-h-0 space-y-2 py-3 pr-0.5">
                 {people.map((person) => {
                   const personTotal = person.orders.reduce(
-                    (s, o) => s + parseFloat(o.price.replace(/[^0-9.-]+/g, "")),
+                    (s, o) => s + ((o.unitPrice ?? 0) * (o.qty ?? 1)),
                     0,
                   );
                   const isOpen = !!openRows[person.id];
@@ -347,7 +352,7 @@ export default function StartOrder() {
                           {/* Column labels */}
                           <div
                             className="grid items-center gap-3 border-b border-gray-50 dark:border-white/[0.04] px-4 py-1.5 bg-gray-50/60 dark:bg-white/[0.01]"
-                            style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 4.5rem" }}
+                            style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem" }}
                           >
                             <div />
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Platillo</div>
@@ -356,6 +361,7 @@ export default function StartOrder() {
                             <div />
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Nota</div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 text-right">Precio</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 text-right">Importe</div>
                           </div>
 
                           {/* Item rows */}
@@ -365,7 +371,7 @@ export default function StartOrder() {
                               <div
                                 key={o.id}
                                 className="grid items-center gap-3 border-b border-gray-50 dark:border-white/[0.03] px-4 py-2.5 last:border-b-0 hover:bg-gray-50/40 dark:hover:bg-white/[0.02] transition-colors"
-                                style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 4.5rem" }}
+                                style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem" }}
                               >
                                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                   <img src={img} alt={o.name} width={40} height={40} className="h-full w-full object-cover" />
@@ -412,8 +418,11 @@ export default function StartOrder() {
                                 <div className="truncate text-xs italic text-gray-400 dark:text-gray-500">
                                   {o.note || "—"}
                                 </div>
+                                <div className="text-right text-sm text-gray-700 dark:text-gray-200">
+                                  {`$${((o.unitPrice ?? 0)).toFixed(2)}`}
+                                </div>
                                 <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                  {o.price}
+                                  {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
                                 </div>
                               </div>
                             );
@@ -443,7 +452,7 @@ export default function StartOrder() {
               <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div>
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
-                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">$0.00</div>
+                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{`$${comandaTotal.toFixed(2)}`}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
