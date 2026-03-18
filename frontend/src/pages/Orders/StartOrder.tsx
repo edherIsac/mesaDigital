@@ -1,11 +1,10 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Fragment, useEffect, useState, useRef } from "react";
 import { Modal } from "../../components/ui/modal";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { ChevronDownIcon } from "../../icons";
-import { useParams, useLocation } from "react-router";
+import { useParams, useLocation, useNavigate } from "react-router";
 import MesaService from "../Admin/Mesas/Mesa.service";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
 // Order creation handled elsewhere; page shows header info only for now
@@ -13,6 +12,7 @@ import { Mesa } from "../Admin/Mesas/Mesa.interface";
 export default function StartOrder() {
   const { tableId } = useParams() as { tableId?: string };
   const location = useLocation();
+  const navigate = useNavigate();
 
   const initialMesa = (location.state as { mesa?: Mesa } | null | undefined)?.mesa;
 
@@ -85,7 +85,16 @@ export default function StartOrder() {
     setNewPersonName(`Persona ${people.length + 1}`);
     setIsDialogOpen(true);
     // focus after modal opens
-    setTimeout(() => nameInputRef.current?.focus(), 50);
+    // focus and select as soon as the input mounts (before dialog animation finishes)
+    if (nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select?.();
+    } else {
+      requestAnimationFrame(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select?.();
+      });
+    }
   };
 
   const handleAddPerson = () => {
@@ -139,7 +148,50 @@ export default function StartOrder() {
   return (
     <div>
       <PageMeta title="Iniciar comanda" description="Iniciar comanda para una mesa" />
-      <PageBreadcrumb pageTitle="Iniciar comanda" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Volver"
+            className="inline-flex items-center justify-center rounded-md p-2 hover:bg-gray-100 dark:hover:bg-white/[0.02]"
+          >
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Iniciar comanda</h2>
+        </div>
+
+        <nav>
+          <ol className="flex items-center gap-1.5">
+            <li>
+              <a
+                className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
+                href="/"
+              >
+                Home
+                <svg
+                  className="stroke-current"
+                  width="17"
+                  height="16"
+                  viewBox="0 0 17 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6.0765 12.667L10.2432 8.50033L6.0765 4.33366"
+                    stroke=""
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+            </li>
+            <li className="text-sm text-gray-800 dark:text-white/90">Iniciar comanda</li>
+          </ol>
+        </nav>
+      </div>
 
       <div className="w-full">
         <div className="mt-6">
@@ -342,6 +394,12 @@ export default function StartOrder() {
                       type="text"
                       value={newPersonName}
                       onChange={(e) => setNewPersonName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddPerson();
+                        }
+                      }}
                       className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                     />
                   </div>
@@ -368,6 +426,12 @@ export default function StartOrder() {
                 <div className="text-xs text-gray-500">Nota: revisa los platillos antes de confirmar</div>
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-gray-700 dark:text-gray-300">Total: <span className="font-semibold">$0.00</span></div>
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
                   <button className="inline-flex items-center rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600">
                     Colocar comanda
                   </button>
