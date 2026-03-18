@@ -22,7 +22,7 @@ export async function fetchMesas(): Promise<Mesa[]> {
     const zone = typeof r["zone"] === "string" ? (r["zone"] as string) : undefined;
     const createdAt = typeof r["createdAt"] === "string" ? (r["createdAt"] as string) : undefined;
     const id = typeof r["id"] === "string" ? (r["id"] as string) : typeof r["_id"] === "string" ? (r["_id"] as string) : String(r["id"] ?? r["_id"] ?? "");
-    const currentOrderId = r["currentOrderId"] ? String((r["currentOrderId"] as any)) : undefined;
+    const currentOrderId = r["currentOrderId"] ? String(r["currentOrderId"]) : undefined;
     const rawStatus = typeof r["status"] === "string" ? (r["status"] as string) : undefined;
     const status = normalizeStatus(rawStatus) ?? rawStatus;
     return { id, label, seats, zone, createdAt, currentOrderId, status } as Mesa;
@@ -37,7 +37,7 @@ export async function createMesa(body: { label: string; seats?: number; zone?: s
   const seats = typeof p["seats"] === "number" ? (p["seats"] as number) : undefined;
   const zone = typeof p["zone"] === "string" ? (p["zone"] as string) : undefined;
   const createdAt = typeof p["createdAt"] === "string" ? (p["createdAt"] as string) : undefined;
-  const currentOrderId = p["currentOrderId"] ? String((p["currentOrderId"] as any)) : undefined;
+  const currentOrderId = p["currentOrderId"] ? String(p["currentOrderId"]) : undefined;
   const rawStatus = typeof p["status"] === "string" ? (p["status"] as string) : undefined;
   const status = normalizeStatus(rawStatus) ?? rawStatus;
   return { id, label, seats, zone, createdAt, currentOrderId, status } as Mesa;
@@ -51,7 +51,7 @@ export async function fetchMesaById(id: string): Promise<Mesa> {
   const seats = typeof p["seats"] === "number" ? (p["seats"] as number) : undefined;
   const zone = typeof p["zone"] === "string" ? (p["zone"] as string) : undefined;
   const createdAt = typeof p["createdAt"] === "string" ? (p["createdAt"] as string) : undefined;
-  const currentOrderId = p["currentOrderId"] ? String((p["currentOrderId"] as any)) : undefined;
+  const currentOrderId = p["currentOrderId"] ? String(p["currentOrderId"]) : undefined;
   const rawStatus = typeof p["status"] === "string" ? (p["status"] as string) : undefined;
   const status = normalizeStatus(rawStatus) ?? rawStatus;
   return { id: pid, label, seats, zone, createdAt, currentOrderId, status } as Mesa;

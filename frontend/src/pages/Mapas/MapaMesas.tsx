@@ -20,7 +20,10 @@ export default function MapaMesas() {
 
   const statusBadgeClass = (s?: string) => {
     const st = (s || 'available').toLowerCase();
-    if (st === 'occupied') return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300';
+    if (st === 'occupied')
+      return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300';
+    if (st === 'reserved')
+      return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300';
     return 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-gray-300';
   };
 
@@ -77,7 +80,7 @@ export default function MapaMesas() {
                   key={m.id}
                   title={m.label}
                   desc={`Asientos: ${m.seats ?? "-"} · ${mesaStatusLabel(m.status)}`}
-                  className={`cursor-pointer hover:shadow-lg transition-shadow ${m.status === 'occupied' ? 'ring-1 ring-yellow-400/20' : ''}`}
+                  className={`cursor-pointer hover:shadow-lg transition-shadow ${m.status === 'occupied' ? 'ring-2 ring-red-400/30 bg-red-50 dark:bg-red-900/10' : m.status === 'reserved' ? 'ring-2 ring-yellow-400/25 bg-yellow-50 dark:bg-yellow-900/10' : ''}`}
                   onClick={() => goToStartOrder(m)}
                 >
                   <div className="flex items-center justify-between">

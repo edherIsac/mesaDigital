@@ -35,6 +35,10 @@ type BackendPerson = {
 };
 
 type BackendOrder = {
+  _id?: string;
+  orderNumber?: string;
+  status?: string;
+  placedAt?: string;
   people?: BackendPerson[];
   items?: BackendOrderItem[];
 };
@@ -53,6 +57,7 @@ export default function StartOrder() {
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
   const [people, setPeople] = useState<ComandaPerson[]>([]);
+  const [orderStatus, setOrderStatus] = useState<string | undefined>(undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -185,29 +190,21 @@ export default function StartOrder() {
 
   useEffect(() => {
     let mounted = true;
-    if (!tableId) return () => { mounted = false; };
-
-    // Always fetch the latest mesa from the backend so that the
-    // `currentOrderId` / `status` are the authoritative values and
-    // other users (meseros) can load the correct comanda.
-    MesaService.fetchMesaById(tableId)
-      .then((found: Mesa | null) => {
-        if (!mounted) return;
-        setMesa(found ?? null);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setMesa(null);
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
-
+    if (!mesa && tableId) {
+      MesaService.fetchMesaById(tableId)
+        .then((found: Mesa | null) => {
+          if (!mounted) return;
+          setMesa(found ?? null);
+        })
+        .finally(() => {
+          if (!mounted) return;
+          setLoading(false);
+        });
+    }
     return () => {
       mounted = false;
     };
-  }, [tableId]);
+  }, [tableId, mesa]);
 
   // If the mesa has an associated order, load it and populate UI
   useEffect(() => {
@@ -217,6 +214,7 @@ export default function StartOrder() {
       try {
         const order = (await OrderService.getOrder(mid)) as BackendOrder;
         if (!mounted || !order) return;
+        if (mounted) setOrderStatus(order.status ?? 'pending');
         // Map backend order -> ComandaPerson[] for UI
         const mappedPeople: ComandaPerson[] = [];
         if (order.people && Array.isArray(order.people) && order.people.length > 0) {
@@ -282,7 +280,7 @@ export default function StartOrder() {
             if (mounted) setPeople(mappedPeople);
           }
         } catch (imgErr) {
-          // If image fetching fails, still set the mapped people
+          console.warn('Could not fetch product images for order', imgErr);
           if (mounted) setPeople(mappedPeople);
         }
       } catch (err) {
@@ -291,7 +289,12 @@ export default function StartOrder() {
       }
     };
 
-    if (mesa?.currentOrderId) loadOrderForMesa(mesa.currentOrderId);
+    if (mesa?.currentOrderId) {
+      loadOrderForMesa(mesa.currentOrderId);
+    } else {
+      setOrderStatus(undefined);
+      setPeople([]);
+    }
     return () => {
       mounted = false;
     };
@@ -336,6 +339,26 @@ export default function StartOrder() {
     return st.charAt(0).toUpperCase() + st.slice(1);
   };
 
+  const orderStatusLabel = (s?: string) => {
+    const st = (s || 'pending').toLowerCase();
+    if (st === 'pending') return 'Pendiente';
+    if (st === 'preparing' || st === 'in_progress') return 'En preparación';
+    if (st === 'ready') return 'Lista';
+    if (st === 'completed' || st === 'done') return 'Completada';
+    if (st === 'cancelled' || st === 'canceled') return 'Cancelada';
+    return st.charAt(0).toUpperCase() + st.slice(1);
+  };
+
+  const orderStatusBadgeClass = (s?: string) => {
+    const st = (s || 'pending').toLowerCase();
+    if (st === 'pending') return 'rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5 text-xs font-medium dark:bg-yellow-900/20 dark:text-yellow-300';
+    if (st === 'preparing' || st === 'in_progress') return 'rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-medium dark:bg-blue-900/20 dark:text-blue-300';
+    if (st === 'ready') return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
+    if (st === 'completed' || st === 'done') return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
+    if (st === 'cancelled' || st === 'canceled') return 'rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium dark:bg-red-900/20 dark:text-red-300';
+    return 'rounded-full bg-gray-100 text-gray-800 px-2 py-0.5 text-xs font-medium dark:bg-white/[0.03] dark:text-gray-300';
+  };
+
   const comanda: Comanda = {
     id: undefined,
     tableId: tableId ?? undefined,
@@ -343,7 +366,7 @@ export default function StartOrder() {
     people,
     totals: computeTotals(people),
     currency: "$",
-    status: "draft",
+    status: orderStatus ?? "draft",
   };
 
   const [placing, setPlacing] = useState(false);
@@ -384,11 +407,12 @@ export default function StartOrder() {
         notes: undefined,
       };
 
-      const created = await OrderService.createOrder(payload);
+      const created = (await OrderService.createOrder(payload)) as BackendOrder;
       console.debug("Order created", created);
       // update local mesa to reflect newly assigned order (so UI/map can show immediate change)
       if (created && created._id && mesa) {
         setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
+        setOrderStatus(created.status ?? 'pending');
       }
       // After creating, navigate back to orders list or table view
       navigate(-1);
@@ -497,6 +521,11 @@ export default function StartOrder() {
                   <span className="rounded-full bg-brand-50 dark:bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-300">
                     {people.length} persona{people.length !== 1 ? "s" : ""}
                   </span>
+                  {orderStatus && (
+                    <span className={`ml-2 ${orderStatusBadgeClass(orderStatus)}`}>
+                      {orderStatusLabel(orderStatus)}
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={openAddPersonDialog}
