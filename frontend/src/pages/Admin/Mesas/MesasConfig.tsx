@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import MesaService from "./Mesa.service";
 import { Mesa } from "./Mesa.interface";
-import Input from "../../../components/form/input/InputField";
 import Button from "../../../components/ui/button/Button";
 
 export default function MesasConfig() {

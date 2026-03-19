@@ -1,6 +1,6 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import OrderService from '../Orders/Order.service';
 import { OrderStatus } from '../../constants/orderStatus';
 import { itemStatusLabel, itemStatusClass, normalizeStatus } from '../../constants/statuses';
@@ -31,6 +31,7 @@ type Order = {
   id?: string;
   orderNumber?: string;
   tableId?: string | null;
+  tableLabel?: string | null;
   locationId?: string | null;
   placedAt?: string | Date | null;
   items?: OrderItem[];
@@ -41,6 +42,7 @@ type KDSItem = OrderItem & {
   orderId?: string;
   orderNumber?: string;
   tableId?: string | null;
+  tableLabel?: string | null;
   placedAt?: string | Date | null;
   personName?: string;
   _order?: Order;
@@ -48,7 +50,7 @@ type KDSItem = OrderItem & {
 
 type AggregatedKDSItem = KDSItem & { _ids: string[]; quantity: number };
 
-type KDSGroup = { orderId: string; orderNumber?: string; tableId?: string | null; placedAt?: string | Date | null; items: AggregatedKDSItem[] };
+type KDSGroup = { orderId: string; orderNumber?: string; tableId?: string | null; tableLabel?: string | null; placedAt?: string | Date | null; items: AggregatedKDSItem[] };
 
 export default function KDS() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -82,6 +84,7 @@ export default function KDS() {
         orderId,
         orderNumber: o.orderNumber,
         tableId: o.tableId,
+        tableLabel: o.tableLabel ?? undefined,
         placedAt: o.placedAt,
       };
 
@@ -107,7 +110,7 @@ export default function KDS() {
     const grouped: Record<string, KDSGroup> = {};
     for (const it of allowed as KDSItem[]) {
       const oid = String(it.orderId || it._order?._id || it._order?.id || 'unknown');
-      if (!grouped[oid]) grouped[oid] = { orderId: oid, orderNumber: it.orderNumber, tableId: it.tableId, placedAt: it.placedAt, items: [] };
+      if (!grouped[oid]) grouped[oid] = { orderId: oid, orderNumber: it.orderNumber, tableId: it.tableId, tableLabel: it.tableLabel, placedAt: it.placedAt, items: [] };
       grouped[oid].items.push(it as AggregatedKDSItem);
     }
 
@@ -153,22 +156,21 @@ export default function KDS() {
     return Object.values(grouped).sort((a: KDSGroup, b: KDSGroup) => (b.placedAt ? new Date(String(b.placedAt)).getTime() : 0) - (a.placedAt ? new Date(String(a.placedAt)).getTime() : 0));
   }, [orders, filter]);
 
-  const updateItemStatus = async (orderId: string, itemId: string, nextStatus: OrderStatus) => {
-    setUpdatingIds((s) => ({ ...s, [itemId]: true }));
-    try {
-      await OrderService.updateOrderItem(orderId, itemId, { status: nextStatus });
-      await fetchOrders();
-    } catch (e) {
-      console.error('Failed to update item status', e);
-      window.alert('Error al actualizar el estado del platillo');
-    } finally {
-      setUpdatingIds((s) => {
-        const c = { ...s };
-        delete c[itemId];
-        return c;
-      });
+  // Map tableId (or order fallback) to friendly labels M1, M2, ... in view order
+  const tableLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    let idx = 1;
+    for (const grp of items) {
+      const key = String(grp.tableLabel ?? grp.tableId ?? grp.orderId ?? `order-${idx}`);
+      if (!map.has(key)) {
+        map.set(key, `M${idx}`);
+        idx += 1;
+      }
     }
-  };
+    return map;
+  }, [items]);
+
+  
 
   const updateAggregatedItemStatus = async (orderId: string, itemIds: string[], groupKey: string, nextStatus: OrderStatus) => {
     setUpdatingIds((s) => ({ ...s, [groupKey]: true }));
@@ -193,36 +195,46 @@ export default function KDS() {
       <PageMeta title="KDS | mesaDigital" description="Kitchen Display System — vista de cocina" />
       <PageBreadcrumb pageTitle="KDS" />
 
-      <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="mb-1 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl">Kitchen Display System</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Platillos pendientes y en preparación — KDS</p>
-          </div>
-
+      <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-5 xl:py-7">
+        <div className="flex items-center justify-start mb-6">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-gray-50 rounded-md p-1">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-md p-1 border border-gray-100 dark:bg-white/[0.03] dark:border-gray-800">
               <button
-                className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                className={`px-3 py-1 rounded text-sm ${
+                  filter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-white/[0.03] text-gray-600 dark:text-gray-300'
+                }`}
                 onClick={() => setFilter('all')}
               >
                 Todos
               </button>
               <button
-                className={`px-3 py-1 rounded text-sm ${filter === 'pending' ? 'bg-yellow-600 text-white' : 'text-gray-600'}`}
+                className={`px-3 py-1 rounded text-sm ${
+                  filter === 'pending'
+                    ? 'bg-yellow-600 text-white'
+                    : 'bg-white dark:bg-white/[0.03] text-gray-600 dark:text-gray-300'
+                }`}
                 onClick={() => setFilter('pending')}
               >
                 Pendientes
               </button>
               <button
-                className={`px-3 py-1 rounded text-sm ${filter === 'preparing' ? 'bg-blue-600 text-white' : 'text-gray-600'}`}
+                className={`px-3 py-1 rounded text-sm ${
+                  filter === 'preparing'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-white/[0.03] text-gray-600 dark:text-gray-300'
+                }`}
                 onClick={() => setFilter('preparing')}
               >
                 En preparación
               </button>
             </div>
 
-            <button className="px-3 py-1 rounded bg-gray-100 text-sm" onClick={fetchOrders}>
+            <button
+              className="px-3 py-1 rounded bg-white dark:bg-white/[0.03] text-sm text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-800"
+              onClick={fetchOrders}
+            >
               {loading ? 'Actualizando...' : 'Actualizar'}
             </button>
           </div>
@@ -233,56 +245,61 @@ export default function KDS() {
         ) : (
           <div className="mx-auto w-full max-w-[1100px]">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {items.map((grp: KDSGroup) => (
-                <ComponentCard
-                  key={grp.orderId}
-                  title={grp.orderNumber || grp.orderId}
-                  desc={`Mesa: ${grp.tableId || '—'} · ${grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} platillo(s)`}
-                  className="shadow-sm hover:shadow-lg transition-shadow"
-                >
-                  <div className="space-y-2">
-                    {grp.items.map((it: AggregatedKDSItem) => {
-                      const itemKey = `agg-${grp.orderId}-${(it._ids || []).join('-')}-${it.name.replace(/\s+/g, '-')}`;
-                      const st = normalizeStatus(it.status);
-                      const canStart = st === OrderStatus.PENDING;
-                      const canReady = st === OrderStatus.PREPARING;
-                      return (
-                        <div key={itemKey} className="flex items-center justify-between gap-3 p-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800">
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-800 dark:text-white/90">{it.name} <span className="text-xs text-gray-500">x{it.quantity}</span></div>
-                            {it.notes ? <div className="text-xs text-gray-400">{it.notes}</div> : null}
-                            {it.personName ? <div className="text-xs text-gray-400">Comensal: {it.personName}</div> : null}
+              {items.map((grp: KDSGroup) => {
+                const tableKey = String(grp.tableLabel ?? grp.tableId ?? grp.orderId);
+                const tableLabel = tableLabelMap.get(tableKey) ?? 'M?';
+                return (
+                  <ComponentCard
+                    key={grp.orderId}
+                    title={tableLabel}
+                    desc={`Mesa: ${tableLabel} · ${grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} platillo(s)`}
+                    className="shadow-sm hover:shadow-lg transition-shadow"
+                    bodyClassName="p-3 sm:p-4"
+                  >
+                    <div className="space-y-2">
+                      {grp.items.map((it: AggregatedKDSItem) => {
+                        const itemKey = `agg-${grp.orderId}-${(it._ids || []).join('-')}-${it.name.replace(/\s+/g, '-')}`;
+                        const st = normalizeStatus(it.status);
+                        const canStart = st === OrderStatus.PENDING;
+                        const canReady = st === OrderStatus.PREPARING;
+                        return (
+                          <div key={itemKey} className="flex items-center justify-between gap-3 p-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-800 dark:text-white/90">{it.name} <span className="text-xs text-gray-500">x{it.quantity}</span></div>
+                              {it.notes ? <div className="text-xs text-gray-400">{it.notes}</div> : null}
+                              {it.personName ? <div className="text-xs text-gray-400">Comensal: {it.personName}</div> : null}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className={`px-2 py-1 rounded text-xs ${itemStatusClass(st)}`}>{itemStatusLabel(st)}</div>
+
+                              {canStart && (
+                                <button
+                                  disabled={!!updatingIds[itemKey]}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                                  onClick={() => updateAggregatedItemStatus(grp.orderId, it._ids, itemKey, OrderStatus.PREPARING)}
+                                >
+                                  {updatingIds[itemKey] ? '...' : 'Iniciar'}
+                                </button>
+                              )}
+
+                              {canReady && (
+                                <button
+                                  disabled={!!updatingIds[itemKey]}
+                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm"
+                                  onClick={() => updateAggregatedItemStatus(grp.orderId, it._ids, itemKey, OrderStatus.READY)}
+                                >
+                                  {updatingIds[itemKey] ? '...' : 'Listo'}
+                                </button>
+                              )}
+                            </div>
                           </div>
-
-                          <div className="flex items-center gap-2">
-                            <div className={`px-2 py-1 rounded text-xs ${itemStatusClass(st)}`}>{itemStatusLabel(st)}</div>
-
-                            {canStart && (
-                              <button
-                                disabled={!!updatingIds[itemKey]}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                                onClick={() => updateAggregatedItemStatus(grp.orderId, it._ids, itemKey, OrderStatus.PREPARING)}
-                              >
-                                {updatingIds[itemKey] ? '...' : 'Iniciar'}
-                              </button>
-                            )}
-
-                            {canReady && (
-                              <button
-                                disabled={!!updatingIds[itemKey]}
-                                className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                                onClick={() => updateAggregatedItemStatus(grp.orderId, it._ids, itemKey, OrderStatus.READY)}
-                              >
-                                {updatingIds[itemKey] ? '...' : 'Listo'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ComponentCard>
-              ))}
+                        );
+                      })}
+                    </div>
+                  </ComponentCard>
+                );
+              })}
             </div>
           </div>
         )}

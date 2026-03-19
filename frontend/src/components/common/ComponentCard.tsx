@@ -6,6 +6,7 @@ interface ComponentCardProps {
   onClick?: () => void;
   noHeader?: boolean;
   fillHeight?: boolean;
+  bodyClassName?: string;
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
@@ -16,9 +17,11 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   onClick,
   noHeader = false,
   fillHeight = false,
+  bodyClassName,
 }) => {
   const outerClass = `rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${fillHeight ? "flex flex-col h-full" : ""} ${className}`;
-  const bodyClass = `${fillHeight ? "flex-1 min-h-0" : ""} p-4 sm:p-6 ${noHeader ? "" : "border-t border-gray-100 dark:border-gray-800"}`;
+  const paddingClass = bodyClassName ?? 'p-4 sm:p-6';
+  const bodyClass = `${fillHeight ? "flex-1 min-h-0" : ""} ${paddingClass} ${noHeader ? "" : "border-t border-gray-100 dark:border-gray-800"}`;
 
   return (
     <div

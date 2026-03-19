@@ -52,12 +52,25 @@ export class OrdersService {
       }
     }
 
+    // Snapshot table label if a tableId was provided so the order keeps the original table identifier
+    let tableLabel: string | undefined = undefined;
+    if (createDto.tableId) {
+      try {
+        const tId = new Types.ObjectId(createDto.tableId);
+        const tableDoc = await this.tableModel.findById(tId).exec();
+        if (tableDoc && (tableDoc as any).label) tableLabel = (tableDoc as any).label;
+      } catch (e) {
+        // ignore: we'll attempt to update the table later and surface errors there
+      }
+    }
+
     // Build the order document payload once so it can be reused for transactional
     // and non-transactional flows.
     const orderDoc: Partial<Order> = {
       orderNumber,
       ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
       tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
+      ...(tableLabel ? { tableLabel } : {}),
       type: createDto.type || 'dine_in',
       items: items || [],
       ...( (createDto as any).people ? { people: (createDto as any).people } : {} ),

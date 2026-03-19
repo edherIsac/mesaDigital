@@ -96,6 +96,9 @@ export class Order {
   @Prop({ type: Types.ObjectId, ref: 'Table', required: false })
   tableId?: Types.ObjectId;
 
+  @Prop()
+  tableLabel?: string;
+
   @Prop({ default: 'dine_in' })
   type: string;
 
