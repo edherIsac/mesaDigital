@@ -6,6 +6,7 @@ import { Table, TableDocument } from './schemas/table.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateItemStatusDto } from './dto/update-item-status.dto';
+import { OrderStatus } from './order-status.enum';
 
 @Injectable()
 export class OrdersService {
@@ -219,5 +220,29 @@ export class OrdersService {
 
     await doc.save();
     return doc;
+  }
+
+  async cancelOrder(orderId: string) {
+    const oid = new Types.ObjectId(orderId);
+    const order = await this.orderModel.findById(oid).exec();
+    if (!order) throw new NotFoundException('Order not found');
+
+    const stRaw = (order.status || '').toString().toLowerCase();
+    const normalized = stRaw === 'canceled' ? OrderStatus.CANCELLED : stRaw;
+    if (normalized === OrderStatus.CANCELLED) return order;
+
+    order.status = OrderStatus.CANCELLED;
+    await order.save();
+
+    // If the order is linked to a table, clear the table's currentOrderId and mark it available
+    if (order.tableId) {
+      try {
+        await this.tableModel.findByIdAndUpdate(order.tableId, { $set: { currentOrderId: null, status: 'available' } }).exec();
+      } catch (e) {
+        console.warn('Failed to update table when cancelling order', e);
+      }
+    }
+
+    return order;
   }
 }

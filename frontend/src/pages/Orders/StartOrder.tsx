@@ -9,9 +9,10 @@ import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import { Product } from "../Admin/Products/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
-import { itemStatusLabel } from "../../constants/statuses";
+import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "./Comanda.interface";
 import OrderService from "./Order.service";
+import { OrderStatus } from "../../constants/orderStatus";
 import { CreateOrderDto } from "./Order.service";
 
 // Backend response shapes (local types)
@@ -58,7 +59,7 @@ export default function StartOrder() {
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
   const [people, setPeople] = useState<ComandaPerson[]>([]);
-  const [orderStatus, setOrderStatus] = useState<string | undefined>(undefined);
+  const [orderStatus, setOrderStatus] = useState<OrderStatus | string | undefined>(undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
   const nameInputRef = useRef<HTMLInputElement | null>(null);
@@ -197,21 +198,7 @@ export default function StartOrder() {
     setProductDialogOpen(false);
   };
 
-  const itemStatusClass = (s?: string) => {
-    const st = (s || 'pending').toLowerCase();
-    switch (st) {
-      case 'preparing':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300';
-      case 'ready':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300';
-      case 'served':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-700/20 dark:text-gray-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300';
-      default:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    }
-  };
+  
 
     // itemStatusLabel is centralized in ../../constants/statuses
 
@@ -266,7 +253,7 @@ export default function StartOrder() {
       try {
         const order = (await OrderService.getOrder(mid)) as BackendOrder;
         if (!mounted || !order) return;
-        if (mounted) setOrderStatus(order.status ?? 'pending');
+        if (mounted) setOrderStatus((order.status as OrderStatus) ?? OrderStatus.PENDING);
         // Map backend order -> ComandaPerson[] for UI
         const mappedPeople: ComandaPerson[] = [];
         if (order.people && Array.isArray(order.people) && order.people.length > 0) {
@@ -392,22 +379,22 @@ export default function StartOrder() {
   };
 
   const orderStatusLabel = (s?: string) => {
-    const st = (s || 'pending').toLowerCase();
-    if (st === 'pending') return 'Pendiente';
-    if (st === 'preparing' || st === 'in_progress') return 'En preparación';
-    if (st === 'ready') return 'Lista';
-    if (st === 'completed' || st === 'done') return 'Completada';
-    if (st === 'cancelled' || st === 'canceled') return 'Cancelada';
+    const st = normalizeStatus(s);
+    if (st === OrderStatus.PENDING) return 'Pendiente';
+    if (st === OrderStatus.PREPARING) return 'En preparación';
+    if (st === OrderStatus.READY) return 'Lista';
+    if (st === OrderStatus.COMPLETED || st === 'done') return 'Completada';
+    if (st === OrderStatus.CANCELLED) return 'Cancelada';
     return st.charAt(0).toUpperCase() + st.slice(1);
   };
 
   const orderStatusBadgeClass = (s?: string) => {
-    const st = (s || 'pending').toLowerCase();
-    if (st === 'pending') return 'rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5 text-xs font-medium dark:bg-yellow-900/20 dark:text-yellow-300';
-    if (st === 'preparing' || st === 'in_progress') return 'rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-medium dark:bg-blue-900/20 dark:text-blue-300';
-    if (st === 'ready') return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
-    if (st === 'completed' || st === 'done') return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
-    if (st === 'cancelled' || st === 'canceled') return 'rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium dark:bg-red-900/20 dark:text-red-300';
+    const st = normalizeStatus(s);
+    if (st === OrderStatus.PENDING) return 'rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5 text-xs font-medium dark:bg-yellow-900/20 dark:text-yellow-300';
+    if (st === OrderStatus.PREPARING) return 'rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-medium dark:bg-blue-900/20 dark:text-blue-300';
+    if (st === OrderStatus.READY) return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
+    if (st === OrderStatus.COMPLETED || st === 'done') return 'rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium dark:bg-green-900/20 dark:text-green-300';
+    if (st === OrderStatus.CANCELLED) return 'rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium dark:bg-red-900/20 dark:text-red-300';
     return 'rounded-full bg-gray-100 text-gray-800 px-2 py-0.5 text-xs font-medium dark:bg-white/[0.03] dark:text-gray-300';
   };
 
@@ -425,6 +412,8 @@ export default function StartOrder() {
   const hasItems = people.some((p) => Array.isArray(p.orders) && p.orders.length > 0);
 
   const [placing, setPlacing] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -493,14 +482,14 @@ export default function StartOrder() {
         console.debug("Order updated", updated);
         if (updated && updated._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(updated._id), status: 'occupied' });
-          setOrderStatus(updated.status ?? 'pending');
+          setOrderStatus((updated.status as OrderStatus) ?? OrderStatus.PENDING);
         }
       } else {
         const created = (await OrderService.createOrder(payload)) as BackendOrder;
         console.debug("Order created", created);
         if (created && created._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
-          setOrderStatus(created.status ?? 'pending');
+          setOrderStatus((created.status as OrderStatus) ?? OrderStatus.PENDING);
         }
       }
       // After creating/updating, navigate back to orders list or table view
@@ -510,6 +499,33 @@ export default function StartOrder() {
       // TODO: show UI error
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (canceling) return;
+    setCanceling(true);
+    try {
+      if (mesa?.currentOrderId) {
+        await OrderService.cancelOrder(String(mesa.currentOrderId));
+        setMesa((m) => (m ? { ...m, currentOrderId: undefined, status: 'available' } : m));
+        setPeople([]);
+        setOrderStatus(OrderStatus.CANCELLED);
+        showToast('Comanda cancelada');
+      } else {
+        // New comanda in-memory: just clear local state
+        if (mesa) setMesa({ ...mesa, currentOrderId: undefined, status: 'available' });
+        setPeople([]);
+        setOrderStatus(undefined);
+        showToast('Comanda cancelada');
+      }
+      navigate('/mapa-mesas');
+    } catch (err) {
+      console.error('Failed to cancel order', err);
+      showToast('No se pudo cancelar la comanda');
+    } finally {
+      setCanceling(false);
+      setShowCancelConfirm(false);
     }
   };
 
@@ -808,8 +824,8 @@ export default function StartOrder() {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => navigate(-1)}
-                    className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -883,6 +899,30 @@ export default function StartOrder() {
               }}
               onConfirm={handleProductsSelected}
             />
+
+            <Modal isOpen={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} className="max-w-[420px] p-6">
+              <div className="flex flex-col px-2">
+                <div>
+                  <h5 className="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl">Confirmar cancelación</h5>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Se cancelará la comanda y se desocupara la mesa. Esta acción no se puede revertir. ¿Deseas continuar?</p>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    onClick={handleConfirmCancel}
+                    disabled={canceling}
+                    className="inline-flex items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    {canceling ? 'Cancelando...' : 'Confirmar cancelación'}
+                  </button>
+                </div>
+              </div>
+            </Modal>
 
             {/* Confirmación: nota y cantidad por producto seleccionado */}
             {pendingSelection && (

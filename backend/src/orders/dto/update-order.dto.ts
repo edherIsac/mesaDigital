@@ -1,9 +1,10 @@
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
+import { OrderStatus } from '../order-status.enum';
 
 export class UpdateOrderDto {
-  @IsString()
+  @IsEnum(OrderStatus)
   @IsOptional()
-  status?: string;
+  status?: OrderStatus;
 
   @IsString()
   @IsOptional()

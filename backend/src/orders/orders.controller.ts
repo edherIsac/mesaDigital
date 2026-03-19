@@ -37,4 +37,9 @@ export class OrdersController {
   removeItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.ordersService.deleteItem(id, itemId);
   }
+
+  @Patch(':id/cancel')
+  cancel(@Param('id') id: string) {
+    return this.ordersService.cancelOrder(id);
+  }
 }

@@ -1,5 +1,6 @@
-import { IsString, IsNumber, IsOptional, ValidateNested, IsArray } from 'class-validator';
+import { IsString, IsNumber, IsOptional, ValidateNested, IsArray, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { OrderStatus } from '../order-status.enum';
 
 class CreateModifierDto {
   @IsString()
@@ -39,9 +40,9 @@ export class CreateOrderItemDto {
   @IsOptional()
   notes?: string;
 
-  @IsString()
+  @IsEnum(OrderStatus)
   @IsOptional()
-  status?: string;
+  status?: OrderStatus;
 
   @IsString()
   @IsOptional()

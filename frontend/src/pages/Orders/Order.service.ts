@@ -1,4 +1,5 @@
 import api from "../../api/client";
+import { OrderStatus } from "../../constants/orderStatus";
 
 export interface CreateOrderItemDto {
   menuItemId?: string;
@@ -6,7 +7,7 @@ export interface CreateOrderItemDto {
   quantity: number;
   unitPrice?: number;
   notes?: string;
-  status?: string;
+  status?: OrderStatus;
 }
 
 export interface CreatePersonDto {
@@ -46,5 +47,10 @@ export async function deleteOrderItem(orderId: string, itemId: string) {
   return res.data;
 }
 
-const OrderService = { createOrder, getOrder, updateOrder, deleteOrderItem };
+export async function cancelOrder(id: string) {
+  const res = await api.patch(`/orders/${id}/cancel`);
+  return res.data;
+}
+
+const OrderService = { createOrder, getOrder, updateOrder, deleteOrderItem, cancelOrder };
 export default OrderService;

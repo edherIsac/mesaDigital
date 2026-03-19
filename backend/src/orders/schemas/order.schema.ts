@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { OrderStatus, OrderStatusValues } from '../order-status.enum';
 
 export type OrderDocument = Order & Document;
 
@@ -37,8 +38,8 @@ export class OrderItem {
   @Prop()
   notes?: string;
 
-  @Prop({ default: 'pending' })
-  status: string;
+  @Prop({ default: OrderStatus.PENDING, enum: OrderStatusValues })
+  status: OrderStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'Station', required: false })
   stationId?: Types.ObjectId;
@@ -98,8 +99,8 @@ export class Order {
   @Prop({ default: 'dine_in' })
   type: string;
 
-  @Prop({ default: 'pending', index: true })
-  status: string;
+  @Prop({ default: OrderStatus.PENDING, index: true, enum: OrderStatusValues })
+  status: OrderStatus;
 
   @Prop({ type: [OrderItemSchema], default: [] })
   items: OrderItem[];

@@ -472,6 +472,29 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/cancel": {
+      "patch": {
+        "operationId": "OrdersController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
     "/api/v1/tables": {
       "get": {
         "operationId": "TablesController_findAll",
