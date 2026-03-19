@@ -174,4 +174,50 @@ export class OrdersService {
     if (!res) throw new NotFoundException('Order or item not found');
     return res;
   }
+
+  async deleteItem(orderId: string, itemId: string) {
+    const doc = await this.orderModel.findById(orderId).exec();
+    if (!doc) throw new NotFoundException('Order not found');
+
+    // Try to remove from top-level items
+    let removed = false;
+    const itemIndex = doc.items.findIndex((it) => String((it as any)._id) === String(itemId));
+    if (itemIndex >= 0) {
+      doc.items.splice(itemIndex, 1);
+      removed = true;
+    }
+
+    // If not found, try to remove from people[].orders
+    if (!removed) {
+      for (const person of doc.people || []) {
+        const idx = (person.orders || []).findIndex((it) => String((it as any)._id) === String(itemId));
+        if (idx >= 0) {
+          person.orders.splice(idx, 1);
+          removed = true;
+          break;
+        }
+      }
+    }
+
+    if (!removed) throw new NotFoundException('Order or item not found');
+
+    const calcItemTotal = (it: any) => {
+      const qty = it.quantity ?? it.qty ?? 1;
+      let s = (it.unitPrice || 0) * qty;
+      if (it.modifiers && Array.isArray(it.modifiers)) {
+        for (const m of it.modifiers) s += (m.priceAdjust || 0) * (m.qty || 1);
+      }
+      return s;
+    };
+
+    let subtotal = 0;
+    for (const it of doc.items || []) subtotal += calcItemTotal(it);
+    for (const p of doc.people || []) for (const it of p.orders || []) subtotal += calcItemTotal(it);
+
+    doc.subtotal = subtotal;
+    doc.total = subtotal + (doc.tax || 0);
+
+    await doc.save();
+    return doc;
+  }
 }

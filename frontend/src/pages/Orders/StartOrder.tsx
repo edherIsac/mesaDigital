@@ -99,6 +99,55 @@ export default function StartOrder() {
     );
   };
 
+  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+
+  const handleDeleteOrderItem = async (personId: number | string, orderId: number | string) => {
+    const pid = String(personId);
+    const oid = String(orderId);
+    const person = people.find((p) => String(p.id) === pid);
+    if (!person) return;
+    const item = person.orders.find((o) => String(o.id) === oid);
+    if (!item) return;
+
+    // If this comanda is new (no DB record) -> just remove locally
+    if (!mesa?.currentOrderId) {
+      setPeople((prev) =>
+        prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
+      );
+      showToast("Platillo eliminado");
+      return;
+    }
+
+    // If editing existing comanda: only call backend if item looks persisted (ObjectId-like)
+    const looksPersisted = typeof item.id === "string" && /^[0-9a-fA-F]{24}$/.test(String(item.id));
+    if (!looksPersisted) {
+      // locally-added item during edit session: remove locally
+      setPeople((prev) =>
+        prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
+      );
+      showToast("Platillo eliminado");
+      return;
+    }
+
+    try {
+      setDeletingIds((s) => ({ ...s, [oid]: true }));
+      await OrderService.deleteOrderItem(String(mesa.currentOrderId), String(item.id));
+      setPeople((prev) =>
+        prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
+      );
+      showToast("Platillo eliminado");
+    } catch (err) {
+      console.error("Failed to delete order item", err);
+      showToast("No se pudo eliminar el platillo");
+    } finally {
+      setDeletingIds((s) => {
+        const next = { ...s };
+        delete next[oid];
+        return next;
+      });
+    }
+  };
+
   // Called by ProductSelectorDialog: keep selection in a pending state so
   // we can ask for note and quantity before adding to the comanda.
   const handleProductsSelected = (products: Product[]) => {
@@ -372,10 +421,39 @@ export default function StartOrder() {
     status: orderStatus ?? "draft",
   };
 
+  // whether the comanda has at least one platillo (order item)
+  const hasItems = people.some((p) => Array.isArray(p.orders) && p.orders.length > 0);
+
   const [placing, setPlacing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimeoutRef = useRef<number | null>(null);
+
+  // show a temporary toast message (local, lightweight)
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setToastVisible(true);
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastVisible(false);
+      toastTimeoutRef.current = null;
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
 
   const handlePlaceComanda = async () => {
     if (placing) return;
+    if (!hasItems) {
+      showToast("Agrega al menos un platillo a la comanda.");
+      return;
+    }
     setPlacing(true);
     try {
       // Build items (flatten) and people payload
@@ -410,14 +488,22 @@ export default function StartOrder() {
         notes: undefined,
       };
 
-      const created = (await OrderService.createOrder(payload)) as BackendOrder;
-      console.debug("Order created", created);
-      // update local mesa to reflect newly assigned order (so UI/map can show immediate change)
-      if (created && created._id && mesa) {
-        setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
-        setOrderStatus(created.status ?? 'pending');
+      if (mesa?.currentOrderId) {
+        const updated = (await OrderService.updateOrder(mesa.currentOrderId, payload)) as BackendOrder;
+        console.debug("Order updated", updated);
+        if (updated && updated._id && mesa) {
+          setMesa({ ...mesa, currentOrderId: String(updated._id), status: 'occupied' });
+          setOrderStatus(updated.status ?? 'pending');
+        }
+      } else {
+        const created = (await OrderService.createOrder(payload)) as BackendOrder;
+        console.debug("Order created", created);
+        if (created && created._id && mesa) {
+          setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
+          setOrderStatus(created.status ?? 'pending');
+        }
       }
-      // After creating, navigate back to orders list or table view
+      // After creating/updating, navigate back to orders list or table view
       navigate(-1);
     } catch (err) {
       console.error("Error placing comanda:", err);
@@ -674,8 +760,21 @@ export default function StartOrder() {
                                 <div className="text-right text-sm text-gray-700 dark:text-gray-200">
                                   {`$${((o.unitPrice ?? 0)).toFixed(2)}`}
                                 </div>
-                                <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                  {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
+                                <div className="flex items-center justify-end gap-3">
+                                  <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    aria-label={`Eliminar ${o.name}`}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteOrderItem(person.id, o.id); }}
+                                    disabled={!!deletingIds[String(o.id)]}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-white/[0.02]"
+                                  >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M9 6v12a2 2 0 002 2h2a2 2 0 002-2V6M10 6V4a2 2 0 012-2h0a2 2 0 012 2v2" />
+                                    </svg>
+                                  </button>
                                 </div>
                               </div>
                             );
@@ -722,11 +821,19 @@ export default function StartOrder() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    {placing ? 'Enviando...' : 'Colocar comanda'}
+                    {placing ? 'Enviando...' : mesa?.currentOrderId ? 'Modificar comanda' : 'Colocar comanda'}
                   </button>
                 </div>
               </div>
             </div>
+            {/* Local toast (appears bottom-right) */}
+            {toastVisible && toastMessage && (
+              <div className="fixed right-6 bottom-6 z-50">
+                <div className="max-w-xs rounded-lg bg-red-600 text-white px-4 py-2 shadow-lg">
+                  {toastMessage}
+                </div>
+              </div>
+            )}
 
             {/* Modals */}
             <Modal isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} className="max-w-[420px] p-6">

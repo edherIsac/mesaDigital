@@ -36,5 +36,15 @@ export async function getOrder(id: string) {
   return res.data;
 }
 
-const OrderService = { createOrder, getOrder };
+export async function updateOrder(id: string, body: Partial<CreateOrderDto>) {
+  const res = await api.patch(`/orders/${id}`, body);
+  return res.data;
+}
+
+export async function deleteOrderItem(orderId: string, itemId: string) {
+  const res = await api.delete(`/orders/${orderId}/items/${itemId}`);
+  return res.data;
+}
+
+const OrderService = { createOrder, getOrder, updateOrder, deleteOrderItem };
 export default OrderService;
