@@ -3,6 +3,8 @@ import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
 import { useEffect, useState } from "react";
 import MesaService from "../Admin/Mesas/Mesa.service";
+import OrderService from "../Orders/Order.service";
+import { itemStatusLabel, itemStatusClass } from "../../constants/statuses";
 import { Mesa } from "../Admin/Mesas/Mesa.interface";
 import { useNavigate } from "react-router";
 
@@ -29,20 +31,47 @@ export default function MapaMesas() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
-    MesaService.fetchMesas()
-      .then((data) => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await MesaService.fetchMesas();
         if (!mounted) return;
-        setMesas(data ?? []);
-      })
-      .catch(() => {
+        const mesasList = data ?? [];
+
+        // Fetch order statuses for mesas that have a currentOrderId
+        const orderIds = Array.from(
+          new Set(mesasList.map((x) => x.currentOrderId).filter(Boolean)),
+        ) as string[];
+
+        const orderStatusMap = new Map<string, string>();
+        if (orderIds.length > 0) {
+          const orders = await Promise.all(
+            orderIds.map((id) => OrderService.getOrder(id).catch(() => null)),
+          );
+          orderIds.forEach((id, idx) => {
+            const o = orders[idx] as any;
+            if (o && o.status) orderStatusMap.set(id, o.status);
+          });
+        }
+
+        const enriched = mesasList.map((m) => ({
+          ...m,
+          orderStatus: m.currentOrderId
+            ? orderStatusMap.get(m.currentOrderId)
+            : undefined,
+        }));
+
+        if (!mounted) return;
+        setMesas(enriched);
+      } catch (e) {
         if (!mounted) return;
         setMesas([]);
-      })
-      .finally(() => {
+      } finally {
         if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+    load();
     return () => {
       mounted = false;
     };
@@ -79,14 +108,19 @@ export default function MapaMesas() {
                 <ComponentCard
                   key={m.id}
                   title={m.label}
-                  desc={`Asientos: ${m.seats ?? "-"} · ${mesaStatusLabel(m.status)}`}
+                  desc={`Asientos: ${m.seats ?? "-"} · ${mesaStatusLabel(m.status)}${(m as any).orderStatus ? ' · ' + itemStatusLabel((m as any).orderStatus) : ''}`}
                   className={`cursor-pointer hover:shadow-lg transition-shadow ${m.status === 'occupied' ? 'ring-2 ring-red-400/30 bg-red-50 dark:bg-red-900/10' : m.status === 'reserved' ? 'ring-2 ring-yellow-400/25 bg-yellow-50 dark:bg-yellow-900/10' : ''}`}
                   onClick={() => goToStartOrder(m)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500 dark:text-gray-400">Zona: {m.zone ?? "-"}</div>
-                    <div className="ml-2">
+                    <div className="ml-2 flex items-center gap-2">
                       <span className={statusBadgeClass(m.status)}>{mesaStatusLabel(m.status)}</span>
+                      {(m as any).currentOrderId && (m as any).orderStatus && (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${itemStatusClass((m as any).orderStatus)}`}>
+                          {itemStatusLabel((m as any).orderStatus)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </ComponentCard>

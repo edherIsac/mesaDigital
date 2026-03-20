@@ -80,7 +80,6 @@ export default function KDS() {
     setLoading(true);
     try {
       const data = (await OrderService.getKDSOrders()) as Order[];
-      console.log(data);
       
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {

@@ -230,6 +230,7 @@ export class OrdersService {
       update['items.$.assignedTo'] = new Types.ObjectId(dto.assignedTo);
     if (dto.notes) update['items.$.notes'] = dto.notes;
 
+    // Try to update top-level items first
     const res = await this.orderModel
       .findOneAndUpdate(
         { _id: oid, 'items._id': iid },
@@ -237,8 +238,58 @@ export class OrdersService {
         { new: true },
       )
       .exec();
-    if (!res) throw new NotFoundException('Order or item not found');
-    return res;
+
+    if (res) {
+      // If the item was moved to PREPARING, ensure the order status reflects it
+      if (dto.status === OrderStatus.PREPARING) {
+        const current = (res.status || '').toString();
+        if (
+          current !== OrderStatus.PREPARING &&
+          current !== OrderStatus.CANCELLED &&
+          current !== OrderStatus.COMPLETED
+        ) {
+          res.status = OrderStatus.PREPARING as any;
+          await (res as any).save();
+        }
+      }
+      return res;
+    }
+
+    // If not found in top-level items, attempt to find and update inside people[].orders
+    const doc = await this.orderModel.findById(oid).exec();
+    if (!doc) throw new NotFoundException('Order not found');
+
+    let found = false;
+    for (const person of doc.people || []) {
+      for (const it of person.orders || []) {
+        if (String((it as any)._id) === String(itemId)) {
+          if (dto.status) (it as any).status = dto.status;
+          if (dto.assignedTo)
+            (it as any).assignedTo = new Types.ObjectId(dto.assignedTo);
+          if (dto.notes) (it as any).notes = dto.notes;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    if (!found) throw new NotFoundException('Order or item not found');
+
+    // If the updated item was set to PREPARING, update order status too (unless it's cancelled/completed)
+    if (dto.status === OrderStatus.PREPARING) {
+      const current = (doc.status || '').toString();
+      if (
+        current !== OrderStatus.PREPARING &&
+        current !== OrderStatus.CANCELLED &&
+        current !== OrderStatus.COMPLETED
+      ) {
+        doc.status = OrderStatus.PREPARING as any;
+      }
+    }
+
+    await doc.save();
+    return doc;
   }
 
   async deleteItem(orderId: string, itemId: string) {
