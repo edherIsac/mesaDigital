@@ -186,7 +186,9 @@ export default function KDS() {
         const menuKey = it.menuItemId ?? it.name;
         const notesKey = (it.notes || "").trim();
         const priceKey = String(it.unitPrice ?? it.price ?? "");
-        const key = `${menuKey}::${statusKey}::${modsKey}::${priceKey}::${notesKey}`;
+        const personKey = (it.personName || "").toString().trim();
+        // include personName in aggregation key so identical items for different persons are not merged
+        const key = `${menuKey}::${statusKey}::${personKey}::${modsKey}::${priceKey}::${notesKey}`;
 
         const qty = Number(it.quantity ?? it.qty ?? 1);
         const id = String(it._id ?? it.id ?? "");
@@ -210,8 +212,8 @@ export default function KDS() {
 
     return Object.values(grouped).sort(
       (a: KDSGroup, b: KDSGroup) =>
-        (b.placedAt ? new Date(String(b.placedAt)).getTime() : 0) -
-        (a.placedAt ? new Date(String(a.placedAt)).getTime() : 0),
+        (a.placedAt ? new Date(String(a.placedAt)).getTime() : 0) -
+        (b.placedAt ? new Date(String(b.placedAt)).getTime() : 0),
     );
   }, [orders, filter]);
 
@@ -257,6 +259,24 @@ export default function KDS() {
     }
   };
 
+  const markOrderReady = async (orderId: string, groupKey?: string) => {
+    const key = groupKey || `order-${orderId}`;
+    setUpdatingIds((s) => ({ ...s, [key]: true }));
+    try {
+      await OrderService.updateOrder(orderId, { status: OrderStatus.READY });
+      await fetchOrders();
+    } catch (e) {
+      console.error("Failed to mark order ready", e);
+      window.alert("Error al marcar la comanda como lista");
+    } finally {
+      setUpdatingIds((s) => {
+        const c = { ...s };
+        delete c[key];
+        return c;
+      });
+    }
+  };
+
 
   // Tick to force periodic re-render so elapsed times update
   const [tick, setTick] = useState(0);
@@ -292,10 +312,10 @@ export default function KDS() {
         ref={dynamicRef}
         style={
           dynamicHeight
-            ? { height: `${dynamicHeight}px`, overflow: "auto" }
+            ? { height: `${dynamicHeight}px` }
             : undefined
         }
-        className=" rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-5 xl:py-7"
+        className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-5 xl:py-7 flex flex-col min-h-0 overflow-hidden"
       >
         <div className="flex items-center justify-start mb-6">
           <div className="flex items-center gap-3">
@@ -341,103 +361,162 @@ export default function KDS() {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[1100px] min-h-0">
+        <div className="mx-auto w-full max-w-[1100px] flex-1 min-h-0 overflow-hidden">
           {items.length === 0 && !loading ? (
             <div className="text-center text-gray-500 py-12">
               No hay platillos pendientes para preparar.
             </div>
           ) : (
             <div
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 h-full"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 h-full min-h-0"
               style={{ gridAutoRows: 'minmax(0, 1fr)' }}
             >
-              {items.map((grp: KDSGroup) => {
-                const tableKey = String(
-                  grp.tableLabel ?? grp.tableId ?? grp.orderId,
-                );
-                const tableLabel = tableLabelMap.get(tableKey) ?? "M?";
-                return (
-                  <ComponentCard
-                    key={grp.orderId}
-                    noHeader
-                    className="shadow-sm hover:shadow-lg transition-shadow"
-                    fillHeight
-                    bodyClassName="p-2 sm:p-2 overflow-auto"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white/90 truncate">{tableLabel}</div>
-                        <div className="text-xs text-gray-500 truncate">Mesa: {tableLabel} · {grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} plat.</div>
-                      </div>
-                        <div className="text-xs text-gray-400">{timeAgo(grp.placedAt)}</div>
-                    </div>
+              {(() => {
+                const visible = items.slice(0, 6);
+                const extra = Math.max(0, items.length - 6);
+                return Array.from({ length: 6 }).map((_, slotIndex) => {
+                  const grp = visible[slotIndex];
+                  if (!grp) {
+                    return (
+                      <ComponentCard
+                        key={`empty-${slotIndex}`}
+                        noHeader
+                        className="shadow-sm hover:shadow-lg transition-shadow"
+                        fillHeight
+                        bodyClassName="p-2 sm:p-2 flex items-center justify-center text-gray-400"
+                      >
+                        <div className="text-sm">Vacío</div>
+                      </ComponentCard>
+                    );
+                  }
 
-                    <div className="space-y-1">
-                      {grp.items.map((it: AggregatedKDSItem) => {
-                        const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
-                        const st = normalizeStatus(it.status);
-                        const canStart = st === OrderStatus.PENDING;
-                        const canReady = st === OrderStatus.PREPARING;
-                        return (
-                          <div
-                            key={itemKey}
-                            className="flex items-center justify-between gap-2 py-1 px-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
-                                {it.name} <span className="text-xs text-gray-500">x{it.quantity}</span>
-                              </div>
-                              {it.personName ? (
-                                <div className="text-xs text-gray-400 truncate">Comensal: {it.personName}</div>
-                              ) : null}
+                  const tableKey = String(
+                    grp.tableLabel ?? grp.tableId ?? grp.orderId,
+                  );
+                  const tableLabel = tableLabelMap.get(tableKey) ?? "M?";
+
+                  return (
+                    <ComponentCard
+                      key={grp.orderId}
+                      noHeader
+                      className="shadow-sm hover:shadow-lg transition-shadow relative"
+                      fillHeight
+                      bodyClassName="p-2 sm:p-2"
+                    >
+                      {extra > 0 && slotIndex === 5 && (
+                        <div className="absolute top-2 right-2 bg-black text-white text-xs rounded px-2">+{extra}</div>
+                      )}
+
+                      <div className="min-h-0" style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100%" }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-white/90 truncate">
+                              {grp.tableLabel ?? tableLabel}
                             </div>
-
-                            <div className="flex items-center gap-1">
-                              <div className={`px-2 py-0.5 rounded text-xs ${itemStatusClass(st)}`}>
-                                {itemStatusLabel(st)}
-                              </div>
-
-                              {canStart && (
-                                <button
-                                  disabled={!!updatingIds[itemKey]}
-                                  className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
-                                  onClick={() =>
-                                    updateAggregatedItemStatus(
-                                      grp.orderId,
-                                      it._ids,
-                                      itemKey,
-                                      OrderStatus.PREPARING,
-                                    )
-                                  }
-                                >
-                                  {updatingIds[itemKey] ? "..." : "Iniciar"}
-                                </button>
-                              )}
-
-                              {canReady && (
-                                <button
-                                  disabled={!!updatingIds[itemKey]}
-                                  className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
-                                  onClick={() =>
-                                    updateAggregatedItemStatus(
-                                      grp.orderId,
-                                      it._ids,
-                                      itemKey,
-                                      OrderStatus.READY,
-                                    )
-                                  }
-                                >
-                                  {updatingIds[itemKey] ? "..." : "Listo"}
-                                </button>
-                              )}
-                            </div>
+                            <div className="text-xs text-gray-500 truncate">Mesa donde se levantó la comanda · {grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} plat.</div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </ComponentCard>
-                );
-              })}
+                          <div className="text-xs text-gray-400">{timeAgo(grp.placedAt)}</div>
+                        </div>
+
+                        <div className="overflow-auto min-h-0">
+                          <div className="space-y-2">
+                            {(() => {
+                              // group aggregated items by personName — skip items without personName
+                              const persons = new Map<string, AggregatedKDSItem[]>();
+                              for (const it of grp.items) {
+                                const raw = it.personName;
+                                const p = raw ? String(raw).trim() : "";
+                                if (!p) continue; // ignore general / unassigned items
+                                const arr = persons.get(p) || [];
+                                arr.push(it);
+                                persons.set(p, arr);
+                              }
+
+                              return Array.from(persons.entries()).map(([pname, itemsForPerson]) => (
+                                <div key={pname}>
+                                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                                    {`Comensal: ${pname}`}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {itemsForPerson.map((it: AggregatedKDSItem) => {
+                                      const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
+                                      const st = normalizeStatus(it.status);
+                                      const canStart = st === OrderStatus.PENDING;
+                                      const canReady = st === OrderStatus.PREPARING;
+                                      return (
+                                        <div
+                                          key={itemKey}
+                                          className="flex items-center justify-between gap-2 py-1 px-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
+                                        >
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                                              {it.name} <span className="text-xs text-gray-500">x{it.quantity}</span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-1">
+                                            <div className={`px-2 py-0.5 rounded text-xs ${itemStatusClass(st)}`}>
+                                              {itemStatusLabel(st)}
+                                            </div>
+
+                                            {canStart && (
+                                              <button
+                                                disabled={!!updatingIds[itemKey]}
+                                                className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
+                                                onClick={() =>
+                                                  updateAggregatedItemStatus(
+                                                    grp.orderId,
+                                                    it._ids,
+                                                    itemKey,
+                                                    OrderStatus.PREPARING,
+                                                  )
+                                                }
+                                              >
+                                                {updatingIds[itemKey] ? "..." : "Iniciar"}
+                                              </button>
+                                            )}
+
+                                            {canReady && (
+                                              <button
+                                                disabled={!!updatingIds[itemKey]}
+                                                className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
+                                                onClick={() =>
+                                                  updateAggregatedItemStatus(
+                                                    grp.orderId,
+                                                    it._ids,
+                                                    itemKey,
+                                                    OrderStatus.READY,
+                                                  )
+                                                }
+                                              >
+                                                {updatingIds[itemKey] ? "..." : "Listo"}
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-gray-100 flex items-center justify-end">
+                          <button
+                            disabled={!!updatingIds[`order-${grp.orderId}`]}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-sm"
+                            onClick={() => markOrderReady(grp.orderId, `order-${grp.orderId}`)}
+                          >
+                            {updatingIds[`order-${grp.orderId}`] ? "..." : "Comanda lista"}
+                          </button>
+                        </div>
+                      </div>
+                    </ComponentCard>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>

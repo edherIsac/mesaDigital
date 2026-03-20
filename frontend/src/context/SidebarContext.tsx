@@ -68,7 +68,7 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const path = location.pathname || "";
     console.debug("[SidebarContext] pathname:", path, "isMobile:", isMobile, "isExpanded:", isExpanded, "prevSaved:", prevExpandedRef.current);
-    if (path.startsWith("/orders/start")) {
+    if (path.startsWith("/orders/start") || path.startsWith("/kds") || path.startsWith("/mapa-mesas")) {
       if (prevExpandedRef.current === null) prevExpandedRef.current = isExpanded;
       if (isExpanded) {
         console.debug("[SidebarContext] collapsing sidebar for orders.start; saved:", prevExpandedRef.current);

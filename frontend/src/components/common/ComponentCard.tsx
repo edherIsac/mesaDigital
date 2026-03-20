@@ -19,7 +19,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   fillHeight = false,
   bodyClassName,
 }) => {
-  const outerClass = `rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${fillHeight ? "flex flex-col h-full" : ""} ${className}`;
+  const outerClass = `rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${fillHeight ? "flex flex-col h-full min-h-0" : ""} ${className}`;
   const paddingClass = bodyClassName ?? 'p-4 sm:p-6';
   const bodyClass = `${fillHeight ? "flex-1 min-h-0" : ""} ${paddingClass} ${noHeader ? "" : "border-t border-gray-100 dark:border-gray-800"}`;
 
