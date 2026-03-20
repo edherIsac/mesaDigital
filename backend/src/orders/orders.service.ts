@@ -48,7 +48,8 @@ export class OrdersService {
       const price = it.unitPrice || 0;
       subtotal += price * (it.quantity || 1);
       if (it.modifiers) {
-        for (const m of it.modifiers) subtotal += (m.priceAdjust || 0) * (m.qty || 1);
+        for (const m of it.modifiers)
+          subtotal += (m.priceAdjust || 0) * (m.qty || 1);
       }
     }
 
@@ -58,8 +59,10 @@ export class OrdersService {
       try {
         const tId = new Types.ObjectId(createDto.tableId);
         const tableDoc = await this.tableModel.findById(tId).exec();
-        if (tableDoc && (tableDoc as any).label) tableLabel = (tableDoc as any).label;
+        if (tableDoc && (tableDoc as any).label)
+          tableLabel = (tableDoc as any).label;
       } catch (e) {
+        console.log('Failed to fetch table label:', e);
         // ignore: we'll attempt to update the table later and surface errors there
       }
     }
@@ -68,12 +71,18 @@ export class OrdersService {
     // and non-transactional flows.
     const orderDoc: Partial<Order> = {
       orderNumber,
-      ...(createDto.locationId ? { locationId: new Types.ObjectId(createDto.locationId) } : {}),
-      tableId: createDto.tableId ? new Types.ObjectId(createDto.tableId) : undefined,
+      ...(createDto.locationId
+        ? { locationId: new Types.ObjectId(createDto.locationId) }
+        : {}),
+      tableId: createDto.tableId
+        ? new Types.ObjectId(createDto.tableId)
+        : undefined,
       ...(tableLabel ? { tableLabel } : {}),
       type: createDto.type || 'dine_in',
       items: items || [],
-      ...( (createDto as any).people ? { people: (createDto as any).people } : {} ),
+      ...((createDto as any).people
+        ? { people: (createDto as any).people }
+        : {}),
       subtotal,
       tax: 0,
       total: subtotal,
@@ -93,9 +102,16 @@ export class OrdersService {
       if (createDto.tableId) {
         const tId = new Types.ObjectId(createDto.tableId);
         const updatedTable = await this.tableModel
-          .findByIdAndUpdate(tId, { $set: { currentOrderId: created._id, status: 'occupied' } }, { new: true, session })
+          .findByIdAndUpdate(
+            tId,
+            { $set: { currentOrderId: created._id, status: 'occupied' } },
+            { new: true, session },
+          )
           .exec();
-        if (!updatedTable) throw new NotFoundException('Table not found when updating after order create');
+        if (!updatedTable)
+          throw new NotFoundException(
+            'Table not found when updating after order create',
+          );
       }
 
       await session.commitTransaction();
@@ -108,18 +124,23 @@ export class OrdersService {
           await session.abortTransaction();
         } catch (e) {
           // ignore
+          console.log('Failed to abort transaction:', e);
         }
         try {
           session.endSession();
         } catch (e) {
           // ignore
+          console.log('Failed to end session:', e);
         }
       }
 
       // If transactions are not supported on this server (common in local dev single-node),
       // fall back to a best-effort non-transactional flow: create order, then update table.
       const isTransactionNotSupported =
-        err && (err.code === 20 || (typeof err.message === 'string' && err.message.includes('Transaction numbers are only allowed')));
+        err &&
+        (err.code === 20 ||
+          (typeof err.message === 'string' &&
+            err.message.includes('Transaction numbers are only allowed')));
       if (isTransactionNotSupported) {
         // Non-transactional create
         const created = await this.orderModel.create(orderDoc as any);
@@ -127,7 +148,11 @@ export class OrdersService {
           const tId = new Types.ObjectId(createDto.tableId);
           try {
             const updatedTable = await this.tableModel
-              .findByIdAndUpdate(tId, { $set: { currentOrderId: created._id, status: 'occupied' } }, { new: true })
+              .findByIdAndUpdate(
+                tId,
+                { $set: { currentOrderId: created._id, status: 'occupied' } },
+                { new: true },
+              )
               .exec();
             if (!updatedTable) {
               // rollback: delete created order
@@ -135,16 +160,24 @@ export class OrdersService {
                 await this.orderModel.findByIdAndDelete(created._id).exec();
               } catch (delErr) {
                 // log and continue throwing the original error
-                console.error('Failed to rollback order after table update failure', delErr);
+                console.error(
+                  'Failed to rollback order after table update failure',
+                  delErr,
+                );
               }
-              throw new NotFoundException('Table not found when updating after order create');
+              throw new NotFoundException(
+                'Table not found when updating after order create',
+              );
             }
           } catch (upErr) {
             // If updating the table fails, ensure we removed the created order or at least log.
             try {
               await this.orderModel.findByIdAndDelete(created._id).exec();
             } catch (delErr) {
-              console.error('Failed to rollback order after table update failure', delErr);
+              console.error(
+                'Failed to rollback order after table update failure',
+                delErr,
+              );
             }
             throw upErr;
           }
@@ -158,9 +191,19 @@ export class OrdersService {
 
   async findAll(query: { locationId?: string; status?: string }) {
     const filter: any = {};
-    if (query.locationId) filter.locationId = new Types.ObjectId(query.locationId);
+    if (query.locationId)
+      filter.locationId = new Types.ObjectId(query.locationId);
     if (query.status) filter.status = query.status;
     return this.orderModel.find(filter).sort({ createdAt: -1 }).lean();
+  }
+
+  async findForKDS(query: { locationId?: string } = {}) {
+    const filter: any = {};
+    if (query.locationId)
+      filter.locationId = new Types.ObjectId(query.locationId);
+    // Exclude cancelled and completed (paid) orders
+    filter.status = { $nin: [OrderStatus.CANCELLED, OrderStatus.COMPLETED] };
+    return this.orderModel.find(filter).sort({ placedAt: -1 }).lean();
   }
 
   async findOne(id: string) {
@@ -170,7 +213,9 @@ export class OrdersService {
   }
 
   async update(id: string, updateDto: UpdateOrderDto) {
-    const updated = await this.orderModel.findByIdAndUpdate(id, { $set: updateDto }, { new: true }).exec();
+    const updated = await this.orderModel
+      .findByIdAndUpdate(id, { $set: updateDto }, { new: true })
+      .exec();
     if (!updated) throw new NotFoundException('Order not found');
     return updated;
   }
@@ -181,10 +226,17 @@ export class OrdersService {
 
     const update: any = {};
     if (dto.status) update['items.$.status'] = dto.status;
-    if (dto.assignedTo) update['items.$.assignedTo'] = new Types.ObjectId(dto.assignedTo);
+    if (dto.assignedTo)
+      update['items.$.assignedTo'] = new Types.ObjectId(dto.assignedTo);
     if (dto.notes) update['items.$.notes'] = dto.notes;
 
-    const res = await this.orderModel.findOneAndUpdate({ _id: oid, 'items._id': iid }, { $set: update }, { new: true }).exec();
+    const res = await this.orderModel
+      .findOneAndUpdate(
+        { _id: oid, 'items._id': iid },
+        { $set: update },
+        { new: true },
+      )
+      .exec();
     if (!res) throw new NotFoundException('Order or item not found');
     return res;
   }
@@ -195,7 +247,9 @@ export class OrdersService {
 
     // Try to remove from top-level items
     let removed = false;
-    const itemIndex = doc.items.findIndex((it) => String((it as any)._id) === String(itemId));
+    const itemIndex = doc.items.findIndex(
+      (it) => String((it as any)._id) === String(itemId),
+    );
     if (itemIndex >= 0) {
       doc.items.splice(itemIndex, 1);
       removed = true;
@@ -204,7 +258,9 @@ export class OrdersService {
     // If not found, try to remove from people[].orders
     if (!removed) {
       for (const person of doc.people || []) {
-        const idx = (person.orders || []).findIndex((it) => String((it as any)._id) === String(itemId));
+        const idx = (person.orders || []).findIndex(
+          (it) => String((it as any)._id) === String(itemId),
+        );
         if (idx >= 0) {
           person.orders.splice(idx, 1);
           removed = true;
@@ -226,7 +282,8 @@ export class OrdersService {
 
     let subtotal = 0;
     for (const it of doc.items || []) subtotal += calcItemTotal(it);
-    for (const p of doc.people || []) for (const it of p.orders || []) subtotal += calcItemTotal(it);
+    for (const p of doc.people || [])
+      for (const it of p.orders || []) subtotal += calcItemTotal(it);
 
     doc.subtotal = subtotal;
     doc.total = subtotal + (doc.tax || 0);
@@ -241,7 +298,8 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     const stRaw = (order.status || '').toString().toLowerCase();
-    const normalized = stRaw === 'canceled' ? OrderStatus.CANCELLED : stRaw;
+    const normalized: string =
+      stRaw === 'canceled' ? OrderStatus.CANCELLED : stRaw;
     if (normalized === OrderStatus.CANCELLED) return order;
 
     order.status = OrderStatus.CANCELLED;
@@ -250,7 +308,11 @@ export class OrdersService {
     // If the order is linked to a table, clear the table's currentOrderId and mark it available
     if (order.tableId) {
       try {
-        await this.tableModel.findByIdAndUpdate(order.tableId, { $set: { currentOrderId: null, status: 'available' } }).exec();
+        await this.tableModel
+          .findByIdAndUpdate(order.tableId, {
+            $set: { currentOrderId: null, status: 'available' },
+          })
+          .exec();
       } catch (e) {
         console.warn('Failed to update table when cancelling order', e);
       }

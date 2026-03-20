@@ -79,7 +79,9 @@ export default function KDS() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = (await OrderService.getOrders()) as Order[];
+      const data = (await OrderService.getKDSOrders()) as Order[];
+      console.log(data);
+      
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to fetch orders for KDS", e);
@@ -90,8 +92,8 @@ export default function KDS() {
 
   useEffect(() => {
     fetchOrders();
-    const t = setInterval(fetchOrders, 8000);
-    return () => clearInterval(t);
+    // const t = setInterval(fetchOrders, 8000);
+    // return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function KDS() {
       const wrapperRect = dynamicRef.current.getBoundingClientRect();
       const avail = window.innerHeight - wrapperRect.top - 24; // 24px bottom spacing
 
-      console.log(avail);
+      
 
       setDynamicHeight(avail > 0 ? Math.max(avail, 0) : 0);
     };
@@ -213,7 +215,6 @@ export default function KDS() {
     );
   }, [orders, filter]);
 
-  // Map tableId (or order fallback) to friendly labels M1, M2, ... in view order
   const tableLabelMap = useMemo(() => {
     const map = new Map<string, string>();
     let idx = 1;
@@ -254,6 +255,29 @@ export default function KDS() {
         return c;
       });
     }
+  };
+
+
+  // Tick to force periodic re-render so elapsed times update
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((s) => s + 1), 15000);
+    return () => clearInterval(t);
+  }, []);
+
+  const timeAgo = (when?: string | Date | null) => {
+    if (!when) return "";
+    const d = new Date(String(when));
+    if (isNaN(d.getTime())) return "";
+    const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (sec < 5) return "ahora";
+    if (sec < 60) return `hace ${sec}s`;
+    const mins = Math.floor(sec / 60);
+    if (mins < 60) return `hace ${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    return `hace ${days}d`;
   };
 
   return (
@@ -317,7 +341,7 @@ export default function KDS() {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[1100px] h-full min-h-0">
+        <div className="mx-auto w-full max-w-[1100px] min-h-0">
           {items.length === 0 && !loading ? (
             <div className="text-center text-gray-500 py-12">
               No hay platillos pendientes para preparar.
@@ -335,13 +359,20 @@ export default function KDS() {
                 return (
                   <ComponentCard
                     key={grp.orderId}
-                    title={tableLabel}
-                    desc={`Mesa: ${tableLabel} · ${grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} platillo(s)`}
+                    noHeader
                     className="shadow-sm hover:shadow-lg transition-shadow"
                     fillHeight
-                    bodyClassName="p-3 sm:p-4 overflow-auto"
+                    bodyClassName="p-2 sm:p-2 overflow-auto"
                   >
-                    <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white/90 truncate">{tableLabel}</div>
+                        <div className="text-xs text-gray-500 truncate">Mesa: {tableLabel} · {grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} plat.</div>
+                      </div>
+                        <div className="text-xs text-gray-400">{timeAgo(grp.placedAt)}</div>
+                    </div>
+
+                    <div className="space-y-1">
                       {grp.items.map((it: AggregatedKDSItem) => {
                         const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
                         const st = normalizeStatus(it.status);
@@ -350,38 +381,26 @@ export default function KDS() {
                         return (
                           <div
                             key={itemKey}
-                            className="flex items-center justify-between gap-3 p-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
+                            className="flex items-center justify-between gap-2 py-1 px-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
                           >
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-800 dark:text-white/90">
-                                {it.name}{" "}
-                                <span className="text-xs text-gray-500">
-                                  x{it.quantity}
-                                </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                                {it.name} <span className="text-xs text-gray-500">x{it.quantity}</span>
                               </div>
-                              {it.notes ? (
-                                <div className="text-xs text-gray-400">
-                                  {it.notes}
-                                </div>
-                              ) : null}
                               {it.personName ? (
-                                <div className="text-xs text-gray-400">
-                                  Comensal: {it.personName}
-                                </div>
+                                <div className="text-xs text-gray-400 truncate">Comensal: {it.personName}</div>
                               ) : null}
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`px-2 py-1 rounded text-xs ${itemStatusClass(st)}`}
-                              >
+                            <div className="flex items-center gap-1">
+                              <div className={`px-2 py-0.5 rounded text-xs ${itemStatusClass(st)}`}>
                                 {itemStatusLabel(st)}
                               </div>
 
                               {canStart && (
                                 <button
                                   disabled={!!updatingIds[itemKey]}
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                                  className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
                                   onClick={() =>
                                     updateAggregatedItemStatus(
                                       grp.orderId,
@@ -398,7 +417,7 @@ export default function KDS() {
                               {canReady && (
                                 <button
                                   disabled={!!updatingIds[itemKey]}
-                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm"
+                                  className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
                                   onClick={() =>
                                     updateAggregatedItemStatus(
                                       grp.orderId,

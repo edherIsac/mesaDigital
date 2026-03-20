@@ -348,6 +348,29 @@
         ]
       }
     },
+    "/api/v1/orders/kds": {
+      "get": {
+        "operationId": "OrdersController_findForKDS",
+        "parameters": [
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
     "/api/v1/orders/{id}": {
       "get": {
         "operationId": "OrdersController_findOne",

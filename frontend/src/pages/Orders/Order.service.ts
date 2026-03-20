@@ -47,6 +47,11 @@ export async function getOrders(params?: { locationId?: string; status?: string 
   return res.data;
 }
 
+export async function getKDSOrders(params?: { locationId?: string }) {
+  const res = await api.get('/orders/kds', { params });
+  return res.data;
+}
+
 export async function updateOrderItem(
   orderId: string,
   itemId: string,
@@ -66,5 +71,5 @@ export async function cancelOrder(id: string) {
   return res.data;
 }
 
-const OrderService = { createOrder, getOrder, getOrders, updateOrder, updateOrderItem, deleteOrderItem, cancelOrder };
+const OrderService = { createOrder, getOrder, getOrders, getKDSOrders, updateOrder, updateOrderItem, deleteOrderItem, cancelOrder };
 export default OrderService;
