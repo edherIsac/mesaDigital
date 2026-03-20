@@ -361,15 +361,15 @@ export default function KDS() {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[1100px] flex-1 min-h-0 overflow-hidden">
+        <div className="w-full flex-1 min-h-0 overflow-hidden">
           {items.length === 0 && !loading ? (
             <div className="text-center text-gray-500 py-12">
               No hay platillos pendientes para preparar.
             </div>
           ) : (
             <div
-              className="grid grid-cols-1 gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 h-full min-h-0"
-              style={{ gridAutoRows: 'minmax(0, 1fr)' }}
+              className="grid gap-4 w-full h-full min-h-0"
+              style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'minmax(0, 1fr)' }}
             >
               {(() => {
                 const visible = items.slice(0, 6);
