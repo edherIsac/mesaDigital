@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { KdsGateway } from './kds.gateway';
 import { OrdersModule } from '../orders/orders.module';
+import { SocketModule } from '../socket/socket.module';
 
 @Module({
-  imports: [OrdersModule],
-  providers: [KdsGateway],
-  exports: [],
+  imports: [OrdersModule, SocketModule],
 })
 export class KdsModule {}

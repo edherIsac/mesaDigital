@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ConfigService } from '@nestjs/config';
 import mongoose from 'mongoose';
 import { AppModule } from './app.module';
@@ -37,6 +38,8 @@ async function bootstrap() {
   );
 
   app.enableCors();
+  // Ensure Nest uses the Socket.IO adapter (allows passing options centrally if needed)
+  app.useWebSocketAdapter(new IoAdapter(app));
   const config = app.get(ConfigService);
   const portStr = config?.get<string>('PORT') ?? process.env.PORT;
   const port = portStr ? Number(portStr) : 3000;
