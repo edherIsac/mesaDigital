@@ -199,11 +199,35 @@ export class OrdersService {
 
   async findForKDS(query: { locationId?: string } = {}) {
     const filter: any = {};
-    if (query.locationId)
-      filter.locationId = new Types.ObjectId(query.locationId);
+    if (query.locationId) filter.locationId = new Types.ObjectId(query.locationId);
     // Exclude cancelled and completed (paid) orders
     filter.status = { $nin: [OrderStatus.CANCELLED, OrderStatus.COMPLETED] };
-    return this.orderModel.find(filter).sort({ placedAt: -1 }).lean();
+
+    // Fetch candidates then filter out orders where ALL items are READY (or no items at all).
+    // This ensures KDS shows only orders that have at least one item not yet ready.
+    const candidates = await this.orderModel.find(filter).sort({ placedAt: -1 }).lean();
+    const isReady = (st?: any) => String(st ?? '').toLowerCase() === String(OrderStatus.READY).toLowerCase();
+
+    const hasPending = (order: any) => {
+      // Check top-level items
+      const items = order.items || [];
+      for (const it of items) {
+        if (!isReady(it?.status)) return true;
+      }
+
+      // Check people -> orders
+      const people = order.people || [];
+      for (const p of people) {
+        const porders = p.orders || [];
+        for (const it of porders) {
+          if (!isReady(it?.status)) return true;
+        }
+      }
+
+      return false;
+    };
+
+    return Array.isArray(candidates) ? candidates.filter((o) => hasPending(o)) : [];
   }
 
   async findOne(id: string) {
@@ -213,11 +237,177 @@ export class OrdersService {
   }
 
   async update(id: string, updateDto: UpdateOrderDto) {
-    const updated = await this.orderModel
-      .findByIdAndUpdate(id, { $set: updateDto }, { new: true })
-      .exec();
-    if (!updated) throw new NotFoundException('Order not found');
-    return updated;
+    // If client attempts to add items or people, we need to merge them into
+    // the existing order document, recalculate totals and enforce basic
+    // status rules (do not allow adding to cancelled/completed orders).
+    const doc = await this.orderModel.findById(id).exec();
+    if (!doc) throw new NotFoundException('Order not found');
+
+    // Small helpers to normalize incoming shapes (clients may send `qty`/`note` or `quantity`/`notes`)
+    const getQty = (x: any) => x?.quantity ?? x?.qty ?? 1;
+    const getUnitPrice = (x: any) => x?.unitPrice ?? x?.price ?? 0;
+    const getNotes = (x: any) => x?.notes ?? x?.note ?? '';
+
+    // Helper to compute item total
+    const calcItemTotal = (it: any) => {
+      const qty = getQty(it);
+      let s = (getUnitPrice(it) || 0) * qty;
+      if (it.modifiers && Array.isArray(it.modifiers)) {
+        for (const m of it.modifiers) s += (m.priceAdjust || 0) * (m.qty || 1);
+      }
+      return s;
+    };
+
+    // Reject additions when order is in terminal states
+    const rawStatus = (doc.status || '').toString();
+    if (
+      rawStatus === OrderStatus.CANCELLED ||
+      rawStatus === OrderStatus.COMPLETED
+    ) {
+      // Client should not be able to modify cancelled/completed orders
+      throw new NotFoundException(
+        'Order cannot be modified in its current state',
+      );
+    }
+
+    // If there are items to add, append them to top-level items (avoid duplicates)
+    if (
+      updateDto.items &&
+      Array.isArray(updateDto.items) &&
+      updateDto.items.length
+    ) {
+      for (const it of updateDto.items) {
+        const exists = (doc.items || []).some((ex: any) => {
+          const exMenu = ex.menuItemId ? String(ex.menuItemId) : undefined;
+          const itMenu = it.menuItemId ? String(it.menuItemId) : undefined;
+          if (
+            ex._id &&
+            (it as any).id &&
+            String(ex._id) === String((it as any).id)
+          )
+            return true;
+          if (
+            exMenu &&
+            itMenu &&
+            exMenu === itMenu &&
+            ex.name === it.name &&
+            getUnitPrice(ex) === getUnitPrice(it) &&
+            getQty(ex) === getQty(it)
+          )
+            return true;
+          if (
+            ex.name === it.name &&
+            getUnitPrice(ex) === getUnitPrice(it) &&
+            getQty(ex) === getQty(it) &&
+            getNotes(ex) === getNotes(it)
+          )
+            return true;
+          return false;
+        });
+        if (!exists) {
+          const newIt = {
+            ...(it as any),
+            status: (it as any).status ?? OrderStatus.PENDING,
+          };
+          (doc.items as any[]).push(newIt as any);
+        }
+      }
+    }
+
+    // If there are people to add/merge
+    if (
+      updateDto.people &&
+      Array.isArray(updateDto.people) &&
+      updateDto.people.length
+    ) {
+      for (const p of updateDto.people) {
+        // If person has an id and exists, merge their orders (avoid duplicating existing items)
+        if (p.id) {
+          const existing = (doc.people || []).find(
+            (x: any) => String(x.id || x._id) === String(p.id),
+          );
+          if (existing) {
+            if (p.orders && Array.isArray(p.orders)) {
+              for (const o of p.orders) {
+                const existsOrder = (existing.orders || []).some((ex: any) => {
+                  const exMenu = ex.menuItemId
+                    ? String(ex.menuItemId)
+                    : undefined;
+                  const oMenu = o.menuItemId ? String(o.menuItemId) : undefined;
+                  if (
+                    ex._id &&
+                    (o as any).id &&
+                    String(ex._id) === String((o as any).id)
+                  )
+                    return true;
+                  if (
+                    exMenu &&
+                    oMenu &&
+                    exMenu === oMenu &&
+                    ex.name === o.name &&
+                    getUnitPrice(ex) === getUnitPrice(o) &&
+                    getQty(ex) === getQty(o)
+                  )
+                    return true;
+                  if (
+                    ex.name === o.name &&
+                    getUnitPrice(ex) === getUnitPrice(o) &&
+                    getQty(ex) === getQty(o) &&
+                    getNotes(ex) === getNotes(o)
+                  )
+                    return true;
+                  return false;
+                });
+                if (!existsOrder) {
+                  const newOrder = {
+                    ...(o as any),
+                    status: (o as any).status ?? OrderStatus.PENDING,
+                  };
+                  existing.orders.push(newOrder as any);
+                }
+              }
+            }
+            // update simple fields if provided
+            if (p.name) existing.name = p.name;
+            if (typeof p.seat !== 'undefined') existing.seat = p.seat;
+            continue;
+          }
+        }
+
+        // Otherwise, add as a new person entry (ensure orders have default status)
+        const newPerson: any = { ...(p as any) };
+        if (newPerson.orders && Array.isArray(newPerson.orders)) {
+          newPerson.orders = newPerson.orders.map((o: any) => ({
+            ...o,
+            status: o.status ?? OrderStatus.PENDING,
+          }));
+        }
+        (doc.people as any[]).push(newPerson as any);
+      }
+    }
+
+    // Apply other scalar updates (status, notes, total)
+    if (typeof updateDto.status !== 'undefined')
+      doc.status = updateDto.status as any;
+    if (typeof updateDto.notes !== 'undefined') doc.notes = updateDto.notes;
+
+    // Recalculate subtotal/total if items/people were modified or client did not provide explicit total
+    if (
+      (updateDto.items && updateDto.items.length) ||
+      (updateDto.people && updateDto.people.length)
+    ) {
+      let subtotal = 0;
+      for (const it of doc.items || []) subtotal += calcItemTotal(it);
+      for (const p of doc.people || [])
+        for (const it of p.orders || []) subtotal += calcItemTotal(it);
+      doc.subtotal = subtotal;
+      doc.total = subtotal + (doc.tax || 0);
+    } else if (typeof updateDto.total !== 'undefined') {
+      doc.total = updateDto.total as any;
+    }
+
+    await doc.save();
+    return doc;
   }
 
   async updateItem(orderId: string, itemId: string, dto: UpdateItemStatusDto) {
