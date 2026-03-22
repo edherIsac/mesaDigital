@@ -13,6 +13,7 @@ interface Props {
   variant?: Variant;
   title?: string;
   message: string;
+  duration?: number | null;
   actions?: ToastAction[];
   isClosing?: boolean;
   onRequestClose: (id: string) => void;
@@ -21,7 +22,7 @@ interface Props {
 
 const ANIM_MS = 220;
 
-const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, actions, isClosing, onRequestClose, onCloseComplete }) => {
+const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, duration, actions, isClosing, onRequestClose, onCloseComplete }) => {
   const [exiting, setExiting] = useState<boolean>(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -33,6 +34,17 @@ const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, actio
     }
     return undefined;
   }, [isClosing, id, onCloseComplete]);
+
+  // Auto-dismiss after `duration` milliseconds if provided (and > 0).
+  useEffect(() => {
+    if (typeof duration === 'number' && duration > 0) {
+      const timer = window.setTimeout(() => {
+        onRequestClose(id);
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [duration, id, onRequestClose]);
 
   // If user requests close (click), start the same sequence
   useEffect(() => {

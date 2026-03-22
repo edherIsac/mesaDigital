@@ -57,13 +57,6 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const push = useCallback((t: ToastItem) => {
     setToasts((prev) => [...prev, t]);
-    if (t.duration !== null && typeof t.duration === "number" && t.duration > 0) {
-      window.setTimeout(() => {
-        // initiate closing sequence (plays exit animation)
-        if (!mountedRef.current) return;
-        initiateDismiss(t.id);
-      }, t.duration ?? DEFAULT_DURATION);
-    }
   }, []);
 
   const show = useCallback((variant: Variant, message: string, title?: string, duration: number | null = DEFAULT_DURATION, actions?: ToastAction[]) => {
@@ -164,7 +157,26 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useAlert = (): AlertContextValue => {
   const ctx = useContext(AlertContext);
-  if (!ctx) throw new Error("useAlert must be used within an AlertProvider");
+  if (!ctx) {
+    // Fallback to a no-op implementation to avoid runtime crashes when the
+    // hook is used outside an AlertProvider (useful during development/HMR).
+    // Log a warning so developers can fix missing provider usage.
+    // The fallback preserves the API shape but performs no UI actions.
+    // NOTE: keep this lightweight and non-throwing so pages can render.
+    // eslint-disable-next-line no-console
+    console.warn("useAlert called outside AlertProvider — returning no-op stub.");
+    const noopId = () => "";
+    const stub: AlertContextValue = {
+      success: (message: string, title?: string) => noopId(),
+      error: (message: string, title?: string) => noopId(),
+      info: (message: string, title?: string) => noopId(),
+      warning: (message: string, title?: string) => noopId(),
+      show: (variant: Variant, message: string, title?: string) => noopId(),
+      dismiss: (_id: string) => {},
+      confirm: (_message: string) => Promise.resolve(false),
+    };
+    return stub;
+  }
   return ctx;
 };
 
