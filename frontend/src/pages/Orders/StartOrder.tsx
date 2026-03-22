@@ -706,7 +706,7 @@ export default function StartOrder() {
                           {/* Column labels */}
                           <div
                             className="grid items-center gap-3 border-b border-gray-50 dark:border-white/[0.04] px-4 py-1.5 bg-gray-50/60 dark:bg-white/[0.01]"
-                            style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem" }}
+                            style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem 4.5rem" }}
                           >
                             <div />
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Platillo</div>
@@ -716,6 +716,7 @@ export default function StartOrder() {
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Nota</div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 text-right">Precio</div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 text-right">Importe</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 text-right">Acciones</div>
                           </div>
 
                           {/* Item rows */}
@@ -725,7 +726,7 @@ export default function StartOrder() {
                               <div
                                 key={o.id}
                                 className="grid items-center gap-3 border-b border-gray-50 dark:border-white/[0.03] px-4 py-2.5 last:border-b-0 hover:bg-gray-50/40 dark:hover:bg-white/[0.02] transition-colors"
-                                style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem" }}
+                                style={{ gridTemplateColumns: "2.5rem 1fr 2.25rem 3.5rem 2.25rem 8rem 6rem 4.5rem 4.5rem" }}
                               >
                                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                   <img src={img} alt={o.name} width={40} height={40} className="h-full w-full object-cover" />
@@ -780,11 +781,11 @@ export default function StartOrder() {
                                 <div className="text-right text-sm text-gray-700 dark:text-gray-200">
                                   {`$${((o.unitPrice ?? 0)).toFixed(2)}`}
                                 </div>
-                                <div className="flex items-center justify-end gap-3">
-                                  <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
-                                  </div>
+                                <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                  {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
+                                </div>
 
+                                <div className="flex items-center justify-end gap-2">
                                   <button
                                     type="button"
                                     aria-label={`Marcar ${o.name} como servido`}
