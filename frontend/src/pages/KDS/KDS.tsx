@@ -43,7 +43,7 @@ type Order = {
   tableLabel?: string | null;
   locationId?: string | null;
   placedAt?: string | Date | null;
-  items?: OrderItem[];
+  // items?: OrderItem[];
   people?: Person[];
 };
 
@@ -80,7 +80,7 @@ export default function KDS() {
     setLoading(true);
     try {
       const data = (await OrderService.getKDSOrders()) as Order[];
-      
+
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Failed to fetch orders for KDS", e);
@@ -100,8 +100,6 @@ export default function KDS() {
       if (!dynamicRef.current) return;
       const wrapperRect = dynamicRef.current.getBoundingClientRect();
       const avail = window.innerHeight - wrapperRect.top - 24; // 24px bottom spacing
-
-      
 
       setDynamicHeight(avail > 0 ? Math.max(avail, 0) : 0);
     };
@@ -128,9 +126,9 @@ export default function KDS() {
         placedAt: o.placedAt,
       };
 
-      (o.items || []).forEach((it: OrderItem) => {
-        out.push({ ...it, ...meta, _order: o });
-      });
+      // (o.items || []).forEach((it: OrderItem) => {
+      //   out.push({ ...it, ...meta, _order: o });
+      // });
 
       (o.people || []).forEach((p: Person) => {
         (p.orders || []).forEach((it: OrderItem) => {
@@ -276,9 +274,9 @@ export default function KDS() {
     }
   };
 
-
   // Tick to force periodic re-render so elapsed times update
   const [tick, setTick] = useState(0);
+  console.warn("KDS tick", tick);
   useEffect(() => {
     const t = setInterval(() => setTick((s) => s + 1), 15000);
     return () => clearInterval(t);
@@ -309,11 +307,7 @@ export default function KDS() {
 
       <div
         ref={dynamicRef}
-        style={
-          dynamicHeight
-            ? { height: `${dynamicHeight}px` }
-            : undefined
-        }
+        style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}
         className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-5 xl:py-7 flex flex-col min-h-0 overflow-hidden"
       >
         <div className="flex items-center justify-start mb-6">
@@ -368,7 +362,10 @@ export default function KDS() {
           ) : (
             <div
               className="grid gap-4 w-full h-full min-h-0"
-              style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridAutoRows: 'minmax(0, 1fr)' }}
+              style={{
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gridAutoRows: "minmax(0, 1fr)",
+              }}
             >
               {(() => {
                 const visible = items.slice(0, 6);
@@ -403,25 +400,46 @@ export default function KDS() {
                       bodyClassName="p-2 sm:p-2"
                     >
                       {extra > 0 && slotIndex === 5 && (
-                        <div className="absolute top-2 right-2 bg-black text-white text-xs rounded px-2">+{extra}</div>
+                        <div className="absolute top-2 right-2 bg-black text-white text-xs rounded px-2">
+                          +{extra}
+                        </div>
                       )}
 
-                      <div className="min-h-0" style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100%" }}>
+                      <div
+                        className="min-h-0"
+                        style={{
+                          display: "grid",
+                          gridTemplateRows: "auto 1fr auto",
+                          height: "100%",
+                        }}
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-gray-900 dark:text-white/90 truncate">
                               {grp.tableLabel ?? tableLabel}
                             </div>
-                            <div className="text-xs text-gray-500 truncate">Mesa donde se levantó la comanda · {grp.items.reduce((s, it) => s + (it.quantity || 0), 0)} plat.</div>
+                            <div className="text-xs text-gray-500 truncate">
+                              Mesa donde se levantó la comanda ·{" "}
+                              {grp.items.reduce(
+                                (s, it) => s + (it.quantity || 0),
+                                0,
+                              )}{" "}
+                              plat.
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-400">{timeAgo(grp.placedAt)}</div>
+                          <div className="text-xs text-gray-400">
+                            {timeAgo(grp.placedAt)}
+                          </div>
                         </div>
 
                         <div className="overflow-auto min-h-0">
                           <div className="space-y-2">
                             {(() => {
                               // group aggregated items by personName — skip items without personName
-                              const persons = new Map<string, AggregatedKDSItem[]>();
+                              const persons = new Map<
+                                string,
+                                AggregatedKDSItem[]
+                              >();
                               for (const it of grp.items) {
                                 const raw = it.personName;
                                 const p = raw ? String(raw).trim() : "";
@@ -431,73 +449,92 @@ export default function KDS() {
                                 persons.set(p, arr);
                               }
 
-                              return Array.from(persons.entries()).map(([pname, itemsForPerson]) => (
-                                <div key={pname}>
-                                  <div className="text-xs font-semibold text-gray-500 mb-1">
-                                    {`Comensal: ${pname}`}
-                                  </div>
-                                  <div className="space-y-1">
-                                    {itemsForPerson.map((it: AggregatedKDSItem) => {
-                                      const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
-                                      const st = normalizeStatus(it.status);
-                                      const canStart = st === OrderStatus.PENDING;
-                                      const canReady = st === OrderStatus.PREPARING;
-                                      return (
-                                        <div
-                                          key={itemKey}
-                                          className="flex items-center justify-between gap-2 py-1 px-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
-                                        >
-                                          <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
-                                              {it.name} <span className="text-xs text-gray-500">x{it.quantity}</span>
+                              return Array.from(persons.entries()).map(
+                                ([pname, itemsForPerson]) => (
+                                  <div key={pname}>
+                                    <div className="text-xs font-semibold text-gray-500 mb-1">
+                                      {`Comensal: ${pname}`}
+                                    </div>
+                                    <div className="space-y-1">
+                                      {itemsForPerson.map(
+                                        (it: AggregatedKDSItem) => {
+                                          const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
+                                          const st = normalizeStatus(it.status);
+                                          const canStart =
+                                            st === OrderStatus.PENDING;
+                                          const canReady =
+                                            st === OrderStatus.PREPARING;
+                                          return (
+                                            <div
+                                              key={itemKey}
+                                              className="flex items-center justify-between gap-2 py-1 px-2 rounded-md border border-gray-100 bg-white dark:bg-white/[0.01] dark:border-gray-800"
+                                            >
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                                                  {it.name}{" "}
+                                                  <span className="text-xs text-gray-500">
+                                                    x{it.quantity}
+                                                  </span>
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-1">
+                                                <div
+                                                  className={`px-2 py-0.5 rounded text-xs ${itemStatusClass(st)}`}
+                                                >
+                                                  {itemStatusLabel(st)}
+                                                </div>
+
+                                                {canStart && (
+                                                  <button
+                                                    disabled={
+                                                      !!updatingIds[itemKey]
+                                                    }
+                                                    className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
+                                                    onClick={() =>
+                                                      updateAggregatedItemStatus(
+                                                        grp.orderId,
+                                                        it._ids,
+                                                        itemKey,
+                                                        OrderStatus.PREPARING,
+                                                      )
+                                                    }
+                                                  >
+                                                    {updatingIds[itemKey]
+                                                      ? "..."
+                                                      : "Iniciar"}
+                                                  </button>
+                                                )}
+
+                                                {canReady && (
+                                                  <button
+                                                    disabled={
+                                                      !!updatingIds[itemKey]
+                                                    }
+                                                    className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
+                                                    onClick={() =>
+                                                      updateAggregatedItemStatus(
+                                                        grp.orderId,
+                                                        it._ids,
+                                                        itemKey,
+                                                        OrderStatus.READY,
+                                                      )
+                                                    }
+                                                  >
+                                                    {updatingIds[itemKey]
+                                                      ? "..."
+                                                      : "Listo"}
+                                                  </button>
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-
-                                          <div className="flex items-center gap-1">
-                                            <div className={`px-2 py-0.5 rounded text-xs ${itemStatusClass(st)}`}>
-                                              {itemStatusLabel(st)}
-                                            </div>
-
-                                            {canStart && (
-                                              <button
-                                                disabled={!!updatingIds[itemKey]}
-                                                className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs"
-                                                onClick={() =>
-                                                  updateAggregatedItemStatus(
-                                                    grp.orderId,
-                                                    it._ids,
-                                                    itemKey,
-                                                    OrderStatus.PREPARING,
-                                                  )
-                                                }
-                                              >
-                                                {updatingIds[itemKey] ? "..." : "Iniciar"}
-                                              </button>
-                                            )}
-
-                                            {canReady && (
-                                              <button
-                                                disabled={!!updatingIds[itemKey]}
-                                                className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
-                                                onClick={() =>
-                                                  updateAggregatedItemStatus(
-                                                    grp.orderId,
-                                                    it._ids,
-                                                    itemKey,
-                                                    OrderStatus.READY,
-                                                  )
-                                                }
-                                              >
-                                                {updatingIds[itemKey] ? "..." : "Listo"}
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                                          );
+                                        },
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ));
+                                ),
+                              );
                             })()}
                           </div>
                         </div>
@@ -506,9 +543,16 @@ export default function KDS() {
                           <button
                             disabled={!!updatingIds[`order-${grp.orderId}`]}
                             className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                            onClick={() => markOrderReady(grp.orderId, `order-${grp.orderId}`)}
+                            onClick={() =>
+                              markOrderReady(
+                                grp.orderId,
+                                `order-${grp.orderId}`,
+                              )
+                            }
                           >
-                            {updatingIds[`order-${grp.orderId}`] ? "..." : "Comanda lista"}
+                            {updatingIds[`order-${grp.orderId}`]
+                              ? "..."
+                              : "Comanda lista"}
                           </button>
                         </div>
                       </div>
