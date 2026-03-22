@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useAlert } from "../../../context/AlertContext";
 import MesaService from "./Mesa.service";
 import { Mesa } from "../../../interfaces/Mesa.interface";
 import Button from "../../../components/ui/button/Button";
@@ -10,6 +11,7 @@ export default function MesasConfig() {
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const alert = useAlert();
 
   const fetch = async () => {
     setLoading(true);
@@ -30,7 +32,8 @@ export default function MesasConfig() {
   // Creation moved to a dedicated page
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar mesa?")) return;
+    const confirmed = await alert.confirm("¿Eliminar mesa?", { title: "Eliminar mesa", confirmLabel: "Eliminar", cancelLabel: "Cancelar" });
+    if (!confirmed) return;
     try {
       setLoading(true);
       await MesaService.deleteMesa(id);

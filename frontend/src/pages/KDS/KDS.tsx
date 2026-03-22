@@ -1,5 +1,6 @@
 import { PageBreadcrumb, PageMeta, ComponentCard } from "../../components";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAlert } from "../../context/AlertContext";
 import OrderService from "../Orders/Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import {
@@ -24,6 +25,7 @@ export default function KDS() {
   const [filter, setFilter] = useState<"all" | "pending" | "preparing">("all");
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
+  const alert = useAlert();
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -192,7 +194,7 @@ export default function KDS() {
       await fetchOrders();
     } catch (e) {
       console.error("Failed to update aggregated item status", e);
-      window.alert("Error al actualizar el estado del platillo");
+      alert.error("Error al actualizar el estado del platillo");
     } finally {
       setUpdatingIds((s) => {
         const c = { ...s };
@@ -210,7 +212,7 @@ export default function KDS() {
       await fetchOrders();
     } catch (e) {
       console.error("Failed to mark order ready", e);
-      window.alert("Error al marcar la comanda como lista");
+      alert.error("Error al marcar la comanda como lista");
     } finally {
       setUpdatingIds((s) => {
         const c = { ...s };

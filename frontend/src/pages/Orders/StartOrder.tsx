@@ -9,7 +9,8 @@ import { Mesa } from "../../interfaces/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import type { Product } from "../../interfaces/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
-import Alert from "../../components/ui/alert/Alert";
+import { useAlert } from "../../context/AlertContext";
+import AlertDemo from "../../components/AlertDemo";
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "../../interfaces/Comanda.interface";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
@@ -90,7 +91,7 @@ export default function StartOrder() {
       setPeople((prev) =>
         prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
       );
-      showToast("Platillo eliminado");
+      alert.success("Platillo eliminado");
       return;
     }
 
@@ -101,7 +102,7 @@ export default function StartOrder() {
       setPeople((prev) =>
         prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
       );
-      showToast("Platillo eliminado");
+      alert.success("Platillo eliminado");
       return;
     }
 
@@ -111,10 +112,10 @@ export default function StartOrder() {
       setPeople((prev) =>
         prev.map((p) => (String(p.id) === pid ? { ...p, orders: p.orders.filter((o) => String(o.id) !== oid) } : p)),
       );
-      showToast("Platillo eliminado");
+      alert.success("Platillo eliminado");
     } catch (err) {
       console.error("Failed to delete order item", err);
-      showToast("No se pudo eliminar el platillo");
+      alert.error("No se pudo eliminar el platillo");
     } finally {
       setDeletingIds((s) => {
         const next = { ...s };
@@ -142,7 +143,7 @@ export default function StartOrder() {
             : p,
         ),
       );
-      showToast('Platillo marcado como servido');
+      alert.success('Platillo marcado como servido');
       return;
     }
 
@@ -156,10 +157,10 @@ export default function StartOrder() {
             : p,
         ),
       );
-      showToast('Platillo marcado como servido');
+      alert.success('Platillo marcado como servido');
     } catch (err) {
       console.error('Failed to mark item served', err);
-      showToast('No se pudo marcar como servido');
+      alert.error('No se pudo marcar como servido');
     } finally {
       setServingIds((s) => {
         const next = { ...s };
@@ -415,44 +416,16 @@ export default function StartOrder() {
 
   // whether the comanda has at least one platillo (order item)
   const hasItems = people.some((p) => Array.isArray(p.orders) && p.orders.length > 0);
-
   const [placing, setPlacing] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [canceling, setCanceling] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [pageAlert, setPageAlert] = useState<
-    | { variant: "success" | "error" | "warning" | "info"; title: string; message: string }
-    | null
-  >(null);
-  const alertTimeoutRef = useRef<number | null>(null);
-  const toastTimeoutRef = useRef<number | null>(null);
-
-  // show a temporary toast message (local, lightweight)
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setToastVisible(true);
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastVisible(false);
-      toastTimeoutRef.current = null;
-    }, 3000);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
-      if (alertTimeoutRef.current) window.clearTimeout(alertTimeoutRef.current);
-    };
-  }, []);
+  const alert = useAlert();
 
   const handlePlaceComanda = async () => {
     if (placing) return;
     if (!hasItems) {
-      showToast("Agrega al menos un platillo a la comanda.");
+      alert.warning("Agrega al menos un platillo a la comanda.");
       return;
     }
     setPlacing(true);
@@ -523,18 +496,18 @@ export default function StartOrder() {
         setMesa((m) => (m ? { ...m, currentOrderId: undefined, status: 'available' } : m));
         setPeople([]);
         setOrderStatus(OrderStatus.CANCELLED);
-        showToast('Comanda cancelada');
+        alert.success('Comanda cancelada');
       } else {
         // New comanda in-memory: just clear local state
         if (mesa) setMesa({ ...mesa, currentOrderId: undefined, status: 'available' });
         setPeople([]);
         setOrderStatus(undefined);
-        showToast('Comanda cancelada');
+        alert.success('Comanda cancelada');
       }
       navigate('/mapa-mesas');
     } catch (err) {
       console.error('Failed to cancel order', err);
-      showToast('No se pudo cancelar la comanda');
+      alert.error('No se pudo cancelar la comanda');
     } finally {
       setCanceling(false);
       setShowCancelConfirm(false);
@@ -544,7 +517,7 @@ export default function StartOrder() {
   const handleSendToCaja = async () => {
     if (completing) return;
     if (!mesa?.currentOrderId) {
-      showToast("La comanda debe estar creada antes de enviarla a caja.");
+      alert.warning("La comanda debe estar creada antes de enviarla a caja.");
       return;
     }
 
@@ -555,13 +528,7 @@ export default function StartOrder() {
         : true,
     );
     if (!allServed) {
-      setPageAlert({
-        variant: "warning",
-        title: "Hay platillos sin servir",
-        message: "No es posible enviar la comanda a caja hasta que todos los platillos estén marcados como servidos.",
-      });
-      if (alertTimeoutRef.current) window.clearTimeout(alertTimeoutRef.current);
-      alertTimeoutRef.current = window.setTimeout(() => setPageAlert(null), 5000);
+      alert.warning("No es posible enviar la comanda a caja hasta que todos los platillos estén marcados como servidos.");
       return;
     }
 
@@ -569,10 +536,10 @@ export default function StartOrder() {
     try {
       await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.COMPLETED);
       setOrderStatus(OrderStatus.COMPLETED);
-      showToast("Comanda enviada a caja");
+      alert.success("Comanda enviada a caja");
     } catch (err) {
       console.error('Failed to send comanda to caja', err);
-      showToast('No se pudo enviar a caja');
+      alert.error('No se pudo enviar a caja');
     } finally {
       setCompleting(false);
     }
@@ -664,6 +631,11 @@ export default function StartOrder() {
             )}
           </ComponentCard>
         </div>
+
+        <div className="mt-4">
+          <AlertDemo />
+        </div>
+
         <div ref={dynamicRef} className="mt-4" style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}>
           <ComponentCard className="w-full h-full" noHeader fillHeight>
             <div className="h-full flex flex-col min-h-0">
@@ -881,16 +853,7 @@ export default function StartOrder() {
               </div>
 
               {/* ── Footer ─────────────────────────────────────── */}
-              {pageAlert && (
-                <div className="px-4 pb-3">
-                  <Alert
-                    variant={pageAlert.variant}
-                    title={pageAlert.title}
-                    message={pageAlert.message}
-                    showLink={false}
-                  />
-                </div>
-              )}
+              {/* Alerts shown via global AlertProvider */}
               <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div>
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
@@ -925,14 +888,7 @@ export default function StartOrder() {
                 </div>
               </div>
             </div>
-            {/* Local toast (appears bottom-right) */}
-            {toastVisible && toastMessage && (
-              <div className="fixed right-6 bottom-6 z-50">
-                <div className="max-w-xs rounded-lg bg-red-600 text-white px-4 py-2 shadow-lg">
-                  {toastMessage}
-                </div>
-              </div>
-            )}
+            {/* Local toast removed — use global AlertProvider */}
 
             {/* Modals */}
             <Modal isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} className="max-w-[420px] p-6">

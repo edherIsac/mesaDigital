@@ -11,11 +11,14 @@ import AllergenPicker from "../../../components/form/AllergenPicker";
 import CategoryPicker from "../../../components/form/CategoryPicker";
 import { Allergen } from "../../../constants/allergens";
 import { Category } from "../../../constants/categories";
+import { useAlert } from "../../../context/AlertContext";
 
 export default function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === undefined;
   const navigate = useNavigate();
+
+  const alert = useAlert();
 
   // Form fields
   const [name, setName] = useState("");
@@ -164,7 +167,8 @@ export default function ProductDetails() {
 
   const handleDelete = async () => {
     if (!id) return;
-    if (!window.confirm("¿Eliminar este producto?")) return;
+    const confirmed = await alert.confirm("¿Eliminar este producto?", { title: "Eliminar producto", confirmLabel: "Eliminar", cancelLabel: "Cancelar" });
+    if (!confirmed) return;
     try {
       setLoading(true);
       await ProductService.deleteProduct(id);

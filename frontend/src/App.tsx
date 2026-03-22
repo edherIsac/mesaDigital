@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import { useEffect, useState } from "react";
+import { AlertProvider } from "./context/AlertContext";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -167,8 +168,9 @@ export default function App() {
 
   return (
     <Router>
-      <ScrollToTop />
-      <div className="relative min-h-screen">
+      <AlertProvider>
+        <ScrollToTop />
+        <div className="relative min-h-screen">
         {/* Content — mounts invisible, transitions to visible after one paint frame */}
         {phase !== "splash" && (
           <div className={`content-wrapper ${contentReady ? "content-visible" : ""}`}>
@@ -182,7 +184,8 @@ export default function App() {
             <Splash />
           </div>
         )}
-      </div>
+        </div>
+      </AlertProvider>
     </Router>
   );
 }
