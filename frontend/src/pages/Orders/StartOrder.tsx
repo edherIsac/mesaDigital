@@ -10,7 +10,6 @@ import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog
 import type { Product } from "../../interfaces/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
 import { useAlert } from "../../context/AlertContext";
-import AlertDemo from "../../components/AlertDemo";
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "../../interfaces/Comanda.interface";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
@@ -85,6 +84,21 @@ export default function StartOrder() {
     if (!person) return;
     const item = person.orders.find((o) => String(o.id) === oid);
     if (!item) return;
+
+    // Prevent deleting items that are already in preparation or further along
+    const itemStatus = normalizeStatus(item.status);
+    const nonDeletableStatuses = [
+      OrderStatus.PREPARING,
+      OrderStatus.READY,
+      OrderStatus.PACKAGED,
+      OrderStatus.SERVED,
+      OrderStatus.DELIVERED,
+      OrderStatus.COMPLETED,
+    ];
+    if (nonDeletableStatuses.includes(itemStatus as OrderStatus)) {
+      alert.warning('No se puede eliminar un platillo que ya está en preparación o en una etapa posterior.');
+      return;
+    }
 
     // If this comanda is new (no DB record) -> just remove locally
     if (!mesa?.currentOrderId) {
@@ -632,10 +646,6 @@ export default function StartOrder() {
           </ComponentCard>
         </div>
 
-        <div className="mt-4">
-          <AlertDemo />
-        </div>
-
         <div ref={dynamicRef} className="mt-4" style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}>
           <ComponentCard className="w-full h-full" noHeader fillHeight>
             <div className="h-full flex flex-col min-h-0">
@@ -740,6 +750,15 @@ export default function StartOrder() {
                           {person.orders.map((o) => {
                             const img = o.coverImage ?? productImages[((o.id as number) - 1) % productImages.length];
                             const isReady = normalizeStatus(o.status) === OrderStatus.READY;
+                            const nonDeletableStatuses = [
+                              OrderStatus.PREPARING,
+                              OrderStatus.READY,
+                              OrderStatus.PACKAGED,
+                              OrderStatus.SERVED,
+                              OrderStatus.DELIVERED,
+                              OrderStatus.COMPLETED,
+                            ];
+                            const isNonDeletable = nonDeletableStatuses.includes(normalizeStatus(o.status) as OrderStatus);
                             return (
                               <div
                                 key={o.id}
@@ -820,8 +839,8 @@ export default function StartOrder() {
                                     type="button"
                                     aria-label={`Eliminar ${o.name}`}
                                     onClick={(e) => { e.stopPropagation(); handleDeleteOrderItem(person.id, o.id); }}
-                                    disabled={!!deletingIds[String(o.id)]}
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-white/[0.02]"
+                                    disabled={!!deletingIds[String(o.id)] || isNonDeletable}
+                                    className={`flex h-8 w-8 items-center justify-center rounded-md ${isNonDeletable ? 'text-gray-400 cursor-not-allowed opacity-60' : 'text-red-600 hover:bg-red-100 dark:hover:bg-white/[0.02]'}`}
                                   >
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M9 6v12a2 2 0 002 2h2a2 2 0 002-2V6M10 6V4a2 2 0 012-2h0a2 2 0 012 2v2" />

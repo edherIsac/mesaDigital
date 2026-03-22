@@ -119,15 +119,15 @@ const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, durat
       tabIndex={0}
       role="status"
       aria-live={variant === 'error' ? 'assertive' : 'polite'}
-      className={`pointer-events-auto w-full max-w-xs rounded-xl shadow-md ${containerVariant.bg} ${containerVariant.border} backdrop-blur-sm overflow-hidden flex items-start gap-3 p-3 transition-all duration-200 ease-out transform ${exiting ? 'opacity-0 translate-x-4 scale-95' : 'opacity-100 translate-x-0'}`}
+      className={`pointer-events-auto w-full rounded-xl shadow-md ${containerVariant.bg} ${containerVariant.border} backdrop-blur-sm overflow-hidden flex items-start gap-3 p-3 transition-all duration-200 ease-out transform ${exiting ? 'opacity-0 translate-x-4 scale-95' : 'opacity-100 translate-x-0'}`}
     >
       <div className={`flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br ${iconAccent} bg-opacity-30`}> 
         {icon}
       </div>
 
       <div className="flex-1 min-w-0">
-        {title && <div className={`text-sm font-semibold ${containerVariant.title} truncate`}>{title}</div>}
-        <div className={`mt-0.5 text-sm ${containerVariant.message} leading-snug truncate`}>{message}</div>
+        {title && <div className={`text-sm font-semibold ${containerVariant.title} whitespace-normal break-words`}>{title}</div>}
+        <div className={`mt-0.5 text-sm ${containerVariant.message} leading-snug whitespace-normal break-words`}>{message}</div>
 
         {actions && actions.length > 0 && (
           <div className="mt-3 flex items-center gap-2 flex-wrap">

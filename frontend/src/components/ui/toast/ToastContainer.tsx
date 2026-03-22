@@ -21,7 +21,7 @@ interface Props {
 
 const ToastContainer: React.FC<Props> = ({ toasts, closingIds, onRequestClose, onCloseComplete }) => {
   return (
-    <div className="fixed top-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none w-full max-w-xs pr-4">
+    <div className="fixed top-6 right-6 z-50 flex flex-col items-end gap-3 pointer-events-none w-full max-w-md pr-4">
       {/* Small styles for animation fallback */}
       <style>{`
         @keyframes toast-in { from { transform: translateY(-8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
