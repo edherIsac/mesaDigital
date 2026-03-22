@@ -74,6 +74,7 @@ export default function StartOrder() {
   };
 
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+  const [servingIds, setServingIds] = useState<Record<string, boolean>>({});
 
   const handleDeleteOrderItem = async (personId: number | string, orderId: number | string) => {
     const pid = String(personId);
@@ -115,6 +116,51 @@ export default function StartOrder() {
       showToast("No se pudo eliminar el platillo");
     } finally {
       setDeletingIds((s) => {
+        const next = { ...s };
+        delete next[oid];
+        return next;
+      });
+    }
+  };
+
+  const handleMarkServed = async (personId: number | string, orderId: number | string) => {
+    const pid = String(personId);
+    const oid = String(orderId);
+    const person = people.find((p) => String(p.id) === pid);
+    if (!person) return;
+    const item = person.orders.find((o) => String(o.id) === oid);
+    if (!item) return;
+
+    // If not persisted, update locally
+    const looksPersisted = typeof item.id === 'string' && /^[0-9a-fA-F]{24}$/.test(String(item.id));
+    if (!mesa?.currentOrderId || !looksPersisted) {
+      setPeople((prev) =>
+        prev.map((p) =>
+          String(p.id) === pid
+            ? { ...p, orders: p.orders.map((o) => (String(o.id) === oid ? { ...o, status: OrderStatus.SERVED } : o)) }
+            : p,
+        ),
+      );
+      showToast('Platillo marcado como servido');
+      return;
+    }
+
+    try {
+      setServingIds((s) => ({ ...s, [oid]: true }));
+      await OrderService.updateOrderItem(String(mesa.currentOrderId), String(item.id), { status: OrderStatus.SERVED });
+      setPeople((prev) =>
+        prev.map((p) =>
+          String(p.id) === pid
+            ? { ...p, orders: p.orders.map((o) => (String(o.id) === oid ? { ...o, status: OrderStatus.SERVED } : o)) }
+            : p,
+        ),
+      );
+      showToast('Platillo marcado como servido');
+    } catch (err) {
+      console.error('Failed to mark item served', err);
+      showToast('No se pudo marcar como servido');
+    } finally {
+      setServingIds((s) => {
         const next = { ...s };
         delete next[oid];
         return next;
@@ -738,6 +784,19 @@ export default function StartOrder() {
                                   <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
                                     {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
                                   </div>
+
+                                  <button
+                                    type="button"
+                                    aria-label={`Marcar ${o.name} como servido`}
+                                    onClick={(e) => { e.stopPropagation(); handleMarkServed(person.id, o.id); }}
+                                    disabled={!!servingIds[String(o.id)] || normalizeStatus(o.status) === OrderStatus.SERVED}
+                                    className="flex h-8 w-8 items-center justify-center rounded-md text-green-600 hover:bg-green-100 dark:hover:bg-white/[0.02]"
+                                  >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                  </button>
+
                                   <button
                                     type="button"
                                     aria-label={`Eliminar ${o.name}`}
