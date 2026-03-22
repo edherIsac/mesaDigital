@@ -9,6 +9,7 @@ import { Mesa } from "../../interfaces/Mesa.interface";
 import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog";
 import type { Product } from "../../interfaces/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
+import Alert from "../../components/ui/alert/Alert";
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "../../interfaces/Comanda.interface";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
@@ -416,10 +417,16 @@ export default function StartOrder() {
   const hasItems = people.some((p) => Array.isArray(p.orders) && p.orders.length > 0);
 
   const [placing, setPlacing] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  const [pageAlert, setPageAlert] = useState<
+    | { variant: "success" | "error" | "warning" | "info"; title: string; message: string }
+    | null
+  >(null);
+  const alertTimeoutRef = useRef<number | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
   // show a temporary toast message (local, lightweight)
@@ -438,6 +445,7 @@ export default function StartOrder() {
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
+      if (alertTimeoutRef.current) window.clearTimeout(alertTimeoutRef.current);
     };
   }, []);
 
@@ -530,6 +538,43 @@ export default function StartOrder() {
     } finally {
       setCanceling(false);
       setShowCancelConfirm(false);
+    }
+  };
+
+  const handleSendToCaja = async () => {
+    if (completing) return;
+    if (!mesa?.currentOrderId) {
+      showToast("La comanda debe estar creada antes de enviarla a caja.");
+      return;
+    }
+
+    // Validate that all items are marked as served before sending to caja
+    const allServed = people.every((p) =>
+      Array.isArray(p.orders) && p.orders.length > 0
+        ? p.orders.every((o) => normalizeStatus(o.status) === OrderStatus.SERVED)
+        : true,
+    );
+    if (!allServed) {
+      setPageAlert({
+        variant: "warning",
+        title: "Hay platillos sin servir",
+        message: "No es posible enviar la comanda a caja hasta que todos los platillos estén marcados como servidos.",
+      });
+      if (alertTimeoutRef.current) window.clearTimeout(alertTimeoutRef.current);
+      alertTimeoutRef.current = window.setTimeout(() => setPageAlert(null), 5000);
+      return;
+    }
+
+    setCompleting(true);
+    try {
+      await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.COMPLETED);
+      setOrderStatus(OrderStatus.COMPLETED);
+      showToast("Comanda enviada a caja");
+    } catch (err) {
+      console.error('Failed to send comanda to caja', err);
+      showToast('No se pudo enviar a caja');
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -836,6 +881,16 @@ export default function StartOrder() {
               </div>
 
               {/* ── Footer ─────────────────────────────────────── */}
+              {pageAlert && (
+                <div className="px-4 pb-3">
+                  <Alert
+                    variant={pageAlert.variant}
+                    title={pageAlert.title}
+                    message={pageAlert.message}
+                    showLink={false}
+                  />
+                </div>
+              )}
               <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div>
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
@@ -858,6 +913,15 @@ export default function StartOrder() {
                     </svg>
                     {placing ? 'Enviando...' : mesa?.currentOrderId ? 'Modificar comanda' : 'Colocar comanda'}
                   </button>
+                  {mesa?.currentOrderId && (
+                    <button
+                      onClick={handleSendToCaja}
+                      disabled={completing}
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {completing ? 'Enviando...' : 'Enviar a caja'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
