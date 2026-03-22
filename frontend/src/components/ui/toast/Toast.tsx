@@ -64,12 +64,45 @@ const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, durat
     return () => el.removeEventListener('keydown', onKey as any);
   }, [id, onRequestClose]);
 
-  const accent = {
-    success: 'from-green-400 to-green-200',
-    error: 'from-red-400 to-red-200',
-    warning: 'from-yellow-400 to-yellow-200',
-    info: 'from-blue-400 to-blue-200',
+  const iconAccent = {
+    success: 'from-green-500 to-green-300',
+    error: 'from-red-500 to-red-300',
+    warning: 'from-yellow-500 to-yellow-300',
+    info: 'from-blue-500 to-blue-300',
     default: 'from-gray-300 to-gray-100',
+  }[variant];
+
+  const containerVariant = {
+    success: {
+      bg: 'bg-green-50/40 dark:bg-green-900/24',
+      border: 'border-green-100 dark:border-green-700',
+      title: 'text-green-900 dark:text-white/90',
+      message: 'text-green-800 dark:text-green-200',
+    },
+    error: {
+      bg: 'bg-red-50/40 dark:bg-red-900/24',
+      border: 'border-red-100 dark:border-red-700',
+      title: 'text-red-900 dark:text-white/90',
+      message: 'text-red-800 dark:text-red-200',
+    },
+    warning: {
+      bg: 'bg-yellow-50/36 dark:bg-yellow-900/20',
+      border: 'border-yellow-100 dark:border-yellow-700',
+      title: 'text-yellow-900 dark:text-white/90',
+      message: 'text-yellow-800 dark:text-yellow-200',
+    },
+    info: {
+      bg: 'bg-blue-50/36 dark:bg-blue-900/22',
+      border: 'border-blue-100 dark:border-blue-700',
+      title: 'text-blue-900 dark:text-white/90',
+      message: 'text-blue-800 dark:text-blue-200',
+    },
+    default: {
+      bg: 'bg-white/70 dark:bg-gray-900/70',
+      border: 'border-white/10 dark:border-white/[0.06]',
+      title: 'text-gray-800 dark:text-white/90',
+      message: 'text-gray-700 dark:text-gray-300',
+    },
   }[variant];
 
   const icon = (() => {
@@ -86,15 +119,15 @@ const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, durat
       tabIndex={0}
       role="status"
       aria-live={variant === 'error' ? 'assertive' : 'polite'}
-      className={`pointer-events-auto w-full max-w-xs rounded-xl shadow-md backdrop-blur-sm border border-white/10 dark:border-white/[0.06] bg-white/70 dark:bg-gray-900/70 overflow-hidden flex items-start gap-3 p-3 transition-all duration-200 ease-out transform ${exiting ? 'opacity-0 translate-x-4 scale-95' : 'opacity-100 translate-x-0'}`}
+      className={`pointer-events-auto w-full max-w-xs rounded-xl shadow-md ${containerVariant.bg} ${containerVariant.border} backdrop-blur-sm overflow-hidden flex items-start gap-3 p-3 transition-all duration-200 ease-out transform ${exiting ? 'opacity-0 translate-x-4 scale-95' : 'opacity-100 translate-x-0'}`}
     >
-      <div className={`flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br ${accent} bg-opacity-30`}> 
+      <div className={`flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-gradient-to-br ${iconAccent} bg-opacity-30`}> 
         {icon}
       </div>
 
       <div className="flex-1 min-w-0">
-        {title && <div className="text-sm font-semibold text-gray-800 dark:text-white/90 truncate">{title}</div>}
-        <div className="mt-0.5 text-sm text-gray-700 dark:text-gray-300 leading-snug truncate">{message}</div>
+        {title && <div className={`text-sm font-semibold ${containerVariant.title} truncate`}>{title}</div>}
+        <div className={`mt-0.5 text-sm ${containerVariant.message} leading-snug truncate`}>{message}</div>
 
         {actions && actions.length > 0 && (
           <div className="mt-3 flex items-center gap-2 flex-wrap">
