@@ -76,6 +76,7 @@ export default function StartOrder() {
 
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
   const [servingIds, setServingIds] = useState<Record<string, boolean>>({});
+  const [deletingPersonIds, setDeletingPersonIds] = useState<Record<string, boolean>>({});
 
   const handleDeleteOrderItem = async (personId: number | string, orderId: number | string) => {
     const pid = String(personId);
@@ -134,6 +135,65 @@ export default function StartOrder() {
       setDeletingIds((s) => {
         const next = { ...s };
         delete next[oid];
+        return next;
+      });
+    }
+  };
+
+  const handleDeletePerson = async (personId: number | string) => {
+    const pid = String(personId);
+    const person = people.find((p) => String(p.id) === pid);
+    if (!person) return;
+
+    const nonDeletableStatuses = [
+      OrderStatus.PREPARING,
+      OrderStatus.READY,
+      OrderStatus.PACKAGED,
+      OrderStatus.SERVED,
+      OrderStatus.DELIVERED,
+      OrderStatus.COMPLETED,
+    ];
+
+    const hasNonDeletable = person.orders.some((o) => nonDeletableStatuses.includes(normalizeStatus(o.status) as OrderStatus));
+    if (hasNonDeletable) {
+      alert.warning('No se puede eliminar una persona que tenga platillos en preparación o en una etapa posterior.');
+      return;
+    }
+
+    // If the comanda isn't persisted yet, just remove locally
+    if (!mesa?.currentOrderId) {
+      setPeople((prev) => prev.filter((p) => String(p.id) !== pid));
+      alert.success('Persona eliminada');
+      return;
+    }
+
+    try {
+      setDeletingPersonIds((s) => ({ ...s, [pid]: true }));
+      const peoplePayload = people
+        .filter((p) => String(p.id) !== pid)
+        .map((p) => ({
+          id: String(p.id),
+          name: p.name,
+          seat: p.seat,
+          orders: p.orders.map((o) => ({
+            menuItemId: o.productId,
+            name: o.name,
+            quantity: o.qty ?? 1,
+            unitPrice: o.unitPrice ?? 0,
+            notes: o.note,
+          })),
+        }));
+
+      await OrderService.updateOrder(String(mesa.currentOrderId), { people: peoplePayload });
+      setPeople((prev) => prev.filter((p) => String(p.id) !== pid));
+      alert.success('Persona eliminada');
+    } catch (err) {
+      console.error('Failed to delete person', err);
+      alert.error('No se pudo eliminar la persona');
+    } finally {
+      setDeletingPersonIds((s) => {
+        const next = { ...s };
+        delete next[pid];
         return next;
       });
     }
@@ -689,42 +749,66 @@ export default function StartOrder() {
                     .slice(0, 2)
                     .toUpperCase();
 
+                  const nonDeletableStatuses = [
+                    OrderStatus.PREPARING,
+                    OrderStatus.READY,
+                    OrderStatus.PACKAGED,
+                    OrderStatus.SERVED,
+                    OrderStatus.DELIVERED,
+                    OrderStatus.COMPLETED,
+                  ];
+                  const isPersonNonDeletable = person.orders.some((o) => nonDeletableStatuses.includes(normalizeStatus(o.status) as OrderStatus));
+
                   return (
                     <div key={person.id} className="overflow-hidden rounded-xl border border-gray-100 dark:border-white/[0.07]">
 
-                      {/* Person header */}
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(person.id as number)}
-                        aria-expanded={isOpen}
-                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
-                          ${isOpen
-                            ? "bg-brand-50/70 dark:bg-brand-500/10"
-                            : "bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/[0.04]"
-                          }`}
-                      >
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold
+                      <div className="flex items-center">
+                        {/* Person header */}
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(person.id as number)}
+                          aria-expanded={isOpen}
+                          className={`flex-1 w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
                             ${isOpen
-                              ? "bg-brand-500 text-white"
-                              : "bg-brand-100 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300"
+                              ? "bg-brand-50/70 dark:bg-brand-500/10"
+                              : "bg-gray-50 dark:bg-white/[0.02] hover:bg-gray-100 dark:hover:bg-white/[0.04]"
                             }`}
                         >
-                          {initials}
-                        </div>
-                        <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-white/90">
-                          {person.name}
-                        </span>
-                        <span className="rounded-full bg-gray-200/80 dark:bg-white/[0.08] px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400 shrink-0">
-                          {person.orders.length} {person.orders.length === 1 ? "platillo" : "platillos"}
-                        </span>
-                        <span className="w-16 shrink-0 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                          ${personTotal.toFixed(2)}
-                        </span>
-                        <ChevronDownIcon
-                          className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180 text-brand-500" : ""}`}
-                        />
-                      </button>
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold
+                              ${isOpen
+                                ? "bg-brand-500 text-white"
+                                : "bg-brand-100 dark:bg-brand-500/20 text-brand-600 dark:text-brand-300"
+                              }`}
+                          >
+                            {initials}
+                          </div>
+                          <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-white/90">
+                            {person.name}
+                          </span>
+                          <span className="rounded-full bg-gray-200/80 dark:bg-white/[0.08] px-2 py-0.5 text-xs text-gray-600 dark:text-gray-400 shrink-0">
+                            {person.orders.length} {person.orders.length === 1 ? "platillo" : "platillos"}
+                          </span>
+                          <span className="w-16 shrink-0 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            ${personTotal.toFixed(2)}
+                          </span>
+                          <ChevronDownIcon
+                            className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180 text-brand-500" : ""}`}
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          aria-label={`Eliminar ${person.name}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeletePerson(person.id); }}
+                          disabled={isPersonNonDeletable || !!deletingPersonIds[String(person.id)]}
+                          className={`ml-2 flex h-8 w-8 items-center justify-center rounded-md ${isPersonNonDeletable ? 'text-gray-400 cursor-not-allowed opacity-60' : 'text-red-600 hover:bg-red-100 dark:hover:bg-white/[0.02]'}`}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M9 6v12a2 2 0 002 2h2a2 2 0 002-2V6M10 6V4a2 2 0 012-2h0a2 2 0 012 2v2" />
+                          </svg>
+                        </button>
+                      </div>
 
                       {/* Expanded items */}
                       {isOpen && (
