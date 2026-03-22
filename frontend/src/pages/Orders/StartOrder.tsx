@@ -722,6 +722,7 @@ export default function StartOrder() {
                           {/* Item rows */}
                           {person.orders.map((o) => {
                             const img = o.coverImage ?? productImages[((o.id as number) - 1) % productImages.length];
+                            const isReady = normalizeStatus(o.status) === OrderStatus.READY;
                             return (
                               <div
                                 key={o.id}
@@ -786,13 +787,13 @@ export default function StartOrder() {
                                 </div>
 
                                 <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    aria-label={`Marcar ${o.name} como servido`}
-                                    onClick={(e) => { e.stopPropagation(); handleMarkServed(person.id, o.id); }}
-                                    disabled={!!servingIds[String(o.id)] || normalizeStatus(o.status) === OrderStatus.SERVED}
-                                    className="flex h-8 w-8 items-center justify-center rounded-md text-green-600 hover:bg-green-100 dark:hover:bg-white/[0.02]"
-                                  >
+                                                <button
+                                                  type="button"
+                                                  aria-label={`Marcar ${o.name} como servido`}
+                                                  onClick={(e) => { e.stopPropagation(); handleMarkServed(person.id, o.id); }}
+                                                  disabled={!!servingIds[String(o.id)] || !isReady}
+                                                  className={`flex h-8 w-8 items-center justify-center rounded-md ${isReady ? 'text-green-600 hover:bg-green-100 dark:hover:bg-white/[0.02]' : 'text-gray-400 dark:text-gray-500 opacity-60 cursor-not-allowed'}`}
+                                                >
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M20 6L9 17l-5-5" />
                                     </svg>
