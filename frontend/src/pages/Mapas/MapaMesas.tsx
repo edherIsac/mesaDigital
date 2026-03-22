@@ -6,7 +6,7 @@ import MesaService from "../Admin/Mesas/Mesa.service";
 import OrderService from "../Orders/Order.service";
 import type { Order } from "../../interfaces/Order.interface";
 import { itemStatusLabel, itemStatusClass } from "../../constants/statuses";
-import { Mesa } from "../Admin/Mesas/Mesa.interface";
+import { Mesa } from "../../interfaces/Mesa.interface";
 import { useNavigate } from "react-router";
 
 export default function MapaMesas() {

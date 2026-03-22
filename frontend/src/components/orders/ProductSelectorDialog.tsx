@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import ProductService from "../../pages/Admin/Products/Product.service";
-import { Product } from "../../pages/Admin/Products/Product.interface";
+import { Product } from "../../interfaces/Product.interface";
 import { Modal } from "../ui/modal";
 import { Category, CATEGORY_LABELS, CATEGORY_GROUPS } from "../../constants/categories";
 import { Allergen, ALLERGEN_LABELS } from "../../constants/allergens";

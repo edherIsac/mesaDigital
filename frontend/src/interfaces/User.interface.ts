@@ -52,4 +52,4 @@ export function normalizeUser(u: RawUser): User {
   };
 }
 
-
+export default {} as unknown;

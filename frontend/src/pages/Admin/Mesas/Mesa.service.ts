@@ -1,5 +1,5 @@
 import api from "../../../api/client";
-import { Mesa } from "./Mesa.interface";
+import { Mesa } from "../../../interfaces/Mesa.interface";
 
 function normalizeStatus(s?: string | undefined): string | undefined {
   if (!s) return undefined;

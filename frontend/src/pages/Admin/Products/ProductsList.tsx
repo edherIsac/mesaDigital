@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import ProductService from "./Product.service";
-import { Product } from "./Product.interface";
+import { Product } from "../../../interfaces/Product.interface";
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";

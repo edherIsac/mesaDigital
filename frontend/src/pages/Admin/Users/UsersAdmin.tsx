@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import UserService from "./User.service";
-import { User } from "./User.interface";
+import { User } from "../../../interfaces/User.interface";
 import Input from "../../../components/form/input/InputField";
 import Button from "../../../components/ui/button/Button";
 

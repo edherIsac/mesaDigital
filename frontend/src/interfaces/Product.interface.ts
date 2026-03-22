@@ -1,5 +1,5 @@
-import { Allergen } from '../../../constants/allergens';
-import { Category } from '../../../constants/categories';
+import { Allergen } from '../constants/allergens';
+import { Category } from '../constants/categories';
 
 export interface Product {
   id: string;
@@ -60,3 +60,5 @@ export function normalizeProduct(raw: RawProduct): Product {
     updatedAt: raw.updatedAt,
   };
 }
+
+export default {} as unknown;

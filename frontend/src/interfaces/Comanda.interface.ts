@@ -1,5 +1,5 @@
-import { Product } from "../Admin/Products/Product.interface";
-import { Mesa } from "../Admin/Mesas/Mesa.interface";
+import { Product } from "./Product.interface";
+import { Mesa } from "./Mesa.interface";
 
 // Representa un ítem dentro de la comanda (una línea)
 export interface ComandaItem {
@@ -12,7 +12,7 @@ export interface ComandaItem {
   unitPrice: number; // precio unitario (número, sin formato)
   type?: string; // tipo/etiqueta ("platillo", "bebida", ...)
   coverImage?: string | null; // url imagen
-  status?: import("../../constants/orderStatus").OrderStatus | string; // estado del ítem (pending, preparing, ready, served, ...)
+  status?: import("../constants/orderStatus").OrderStatus | string; // estado del ítem (pending, preparing, ready, served, ...)
 }
 
 // Representa una persona / asiento dentro de la comanda
@@ -46,3 +46,5 @@ export interface Comanda {
   notes?: string; // notas generales de la comanda
   metadata?: Record<string, unknown>;
 }
+
+export default {} as unknown;

@@ -1,5 +1,5 @@
 // ProductCard — presentational only, no React import required with new JSX transform
-import { Product } from '../../pages/Admin/Products/Product.interface'
+import { Product } from '../../interfaces/Product.interface'
 
 type Props = {
   product: Product

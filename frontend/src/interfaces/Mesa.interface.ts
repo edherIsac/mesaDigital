@@ -9,3 +9,5 @@ export interface Mesa {
   // The current order's status (if any) fetched for display in maps/UI
   orderStatus?: string;
 }
+
+export default {} as unknown;

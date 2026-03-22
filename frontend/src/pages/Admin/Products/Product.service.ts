@@ -1,5 +1,5 @@
 import api from "../../../api/client";
-import { RawProduct, Product, ApiResponse, normalizeProduct } from "./Product.interface";
+import { RawProduct, Product, ApiResponse, normalizeProduct } from "../../../interfaces/Product.interface";
 import { AxiosRequestConfig } from "axios";
 import { Allergen } from "../../../constants/allergens";
 import { Category } from "../../../constants/categories";
