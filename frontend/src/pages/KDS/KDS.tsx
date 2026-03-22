@@ -1,5 +1,4 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import PageMeta from "../../components/common/PageMeta";
+import { PageBreadcrumb, PageMeta, ComponentCard } from "../../components";
 import { useEffect, useMemo, useRef, useState } from "react";
 import OrderService from "../Orders/Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
@@ -8,7 +7,7 @@ import {
   itemStatusClass,
   normalizeStatus,
 } from "../../constants/statuses";
-import ComponentCard from "../../components/common/ComponentCard";
+// ComponentCard is re-exported from the components barrel
 import type {
   OrderItem,
   Person,
