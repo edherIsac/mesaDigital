@@ -67,7 +67,8 @@ export default function KDS() {
   const items = useMemo((): KDSGroup[] => {
     const out: KDSItem[] = [];
     for (const o of orders) {
-      const orderId = o._id || o.id || o.orderNumber;
+      const rawOrderId = o._id ?? o.id ?? o.orderNumber;
+      const orderId = rawOrderId != null ? String(rawOrderId) : undefined;
       const meta = {
         orderId,
         orderNumber: o.orderNumber,
@@ -75,10 +76,6 @@ export default function KDS() {
         tableLabel: o.tableLabel ?? undefined,
         placedAt: o.placedAt,
       };
-
-      // (o.items || []).forEach((it: OrderItem) => {
-      //   out.push({ ...it, ...meta, _order: o });
-      // });
 
       (o.people || []).forEach((p: Person) => {
         (p.orders || []).forEach((it: OrderItem) => {
@@ -210,7 +207,7 @@ export default function KDS() {
     const key = groupKey || `order-${orderId}`;
     setUpdatingIds((s) => ({ ...s, [key]: true }));
     try {
-      await OrderService.updateOrder(orderId, { status: OrderStatus.READY });
+      await OrderService.updateOrderStatus(orderId, OrderStatus.READY);
       await fetchOrders();
     } catch (e) {
       console.error("Failed to mark order ready", e);

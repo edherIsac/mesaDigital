@@ -42,6 +42,11 @@ export async function updateOrder(id: string, body: Partial<CreateOrderDto>) {
   return res.data;
 }
 
+export async function updateOrderStatus(id: string, status: OrderStatus) {
+  const res = await api.patch(`/orders/${id}`, { status });
+  return res.data;
+}
+
 export async function getOrders(params?: { locationId?: string; status?: string }) {
   const res = await api.get('/orders', { params });
   return res.data;
@@ -71,5 +76,5 @@ export async function cancelOrder(id: string) {
   return res.data;
 }
 
-const OrderService = { createOrder, getOrder, getOrders, getKDSOrders, updateOrder, updateOrderItem, deleteOrderItem, cancelOrder };
+const OrderService = { createOrder, getOrder, getOrders, getKDSOrders, updateOrder, updateOrderStatus, updateOrderItem, deleteOrderItem, cancelOrder };
 export default OrderService;
