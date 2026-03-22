@@ -8,8 +8,6 @@ export class OrderEvent {
   @Prop({ type: Types.ObjectId, ref: 'Order' })
   orderId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Order.items', required: false })
-  itemId?: Types.ObjectId;
 
   @Prop({ required: true })
   eventType: string;

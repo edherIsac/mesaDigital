@@ -9,64 +9,14 @@ import {
   normalizeStatus,
 } from "../../constants/statuses";
 import ComponentCard from "../../components/common/ComponentCard";
-
-// Types for KDS
-type Modifier = { priceAdjust?: number; qty?: number; name?: string };
-
-type OrderItem = {
-  _id?: string;
-  id?: string;
-  menuItemId?: string;
-  name: string;
-  quantity?: number;
-  qty?: number;
-  unitPrice?: number;
-  price?: number;
-  notes?: string;
-  status?: string;
-  modifiers?: Modifier[];
-  assignedTo?: string;
-};
-
-type Person = {
-  id?: string;
-  name?: string;
-  seat?: number;
-  orders?: OrderItem[];
-};
-
-type Order = {
-  _id?: string;
-  id?: string;
-  orderNumber?: string;
-  tableId?: string | null;
-  tableLabel?: string | null;
-  locationId?: string | null;
-  placedAt?: string | Date | null;
-  // items?: OrderItem[];
-  people?: Person[];
-};
-
-type KDSItem = OrderItem & {
-  orderId?: string;
-  orderNumber?: string;
-  tableId?: string | null;
-  tableLabel?: string | null;
-  placedAt?: string | Date | null;
-  personName?: string;
-  _order?: Order;
-};
-
-type AggregatedKDSItem = KDSItem & { _ids: string[]; quantity: number };
-
-type KDSGroup = {
-  orderId: string;
-  orderNumber?: string;
-  tableId?: string | null;
-  tableLabel?: string | null;
-  placedAt?: string | Date | null;
-  items: AggregatedKDSItem[];
-};
+import type {
+  OrderItem,
+  Person,
+  Order,
+  KDSItem,
+  AggregatedKDSItem,
+  KDSGroup,
+} from "../../interfaces/Order.interface";
 
 export default function KDS() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -275,8 +225,7 @@ export default function KDS() {
   };
 
   // Tick to force periodic re-render so elapsed times update
-  const [tick, setTick] = useState(0);
-  console.warn("KDS tick", tick);
+  const [, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((s) => s + 1), 15000);
     return () => clearInterval(t);
@@ -458,7 +407,7 @@ export default function KDS() {
                                     <div className="space-y-1">
                                       {itemsForPerson.map(
                                         (it: AggregatedKDSItem) => {
-                                          const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it.name.replace(/\s+/g, "-")}`;
+                                          const itemKey = `agg-${grp.orderId}-${(it._ids || []).join("-")}-${it?.name?.replace(/\s+/g, "-")}`;
                                           const st = normalizeStatus(it.status);
                                           const canStart =
                                             st === OrderStatus.PENDING;

@@ -68,7 +68,26 @@ export class OrdersService {
     }
 
     // Build the order document payload once so it can be reused for transactional
-    // and non-transactional flows.
+    // and non-transactional flows. We no longer persist a top-level `items` array
+    // — normalize into `people` when necessary so older clients sending `items`
+    // are still supported.
+    let peopleForDoc: any[] | undefined = undefined;
+    if ((createDto as any).people && Array.isArray((createDto as any).people) && (createDto as any).people.length) {
+      peopleForDoc = (createDto as any).people;
+    } else if (items && items.length) {
+      // Convert flat items into a single-person orders list
+      const mappedOrders = (items || []).map((it: any) => ({
+        menuItemId: it.menuItemId,
+        name: it.name,
+        quantity: it.quantity || it.qty || 1,
+        unitPrice: it.unitPrice ?? it.price ?? 0,
+        modifiers: it.modifiers || [],
+        notes: it.notes || it.note || undefined,
+        status: it.status ?? OrderStatus.PENDING,
+      }));
+      peopleForDoc = [{ id: '1', name: 'Mesa', orders: mappedOrders }];
+    }
+
     const orderDoc: Partial<Order> = {
       orderNumber,
       ...(createDto.locationId
@@ -79,10 +98,7 @@ export class OrdersService {
         : undefined,
       ...(tableLabel ? { tableLabel } : {}),
       type: createDto.type || 'dine_in',
-      items: items || [],
-      ...((createDto as any).people
-        ? { people: (createDto as any).people }
-        : {}),
+      ...(peopleForDoc ? { people: peopleForDoc } : {}),
       subtotal,
       tax: 0,
       total: subtotal,
@@ -270,46 +286,59 @@ export class OrdersService {
       );
     }
 
-    // If there are items to add, append them to top-level items (avoid duplicates)
+    // If there are items to add, merge them into `people[].orders` (avoid duplicates)
     if (
       updateDto.items &&
       Array.isArray(updateDto.items) &&
       updateDto.items.length
     ) {
-      for (const it of updateDto.items) {
-        const exists = (doc.items || []).some((ex: any) => {
-          const exMenu = ex.menuItemId ? String(ex.menuItemId) : undefined;
-          const itMenu = it.menuItemId ? String(it.menuItemId) : undefined;
-          if (
-            ex._id &&
-            (it as any).id &&
-            String(ex._id) === String((it as any).id)
-          )
-            return true;
-          if (
-            exMenu &&
-            itMenu &&
-            exMenu === itMenu &&
-            ex.name === it.name &&
-            getUnitPrice(ex) === getUnitPrice(it) &&
-            getQty(ex) === getQty(it)
-          )
-            return true;
-          if (
-            ex.name === it.name &&
-            getUnitPrice(ex) === getUnitPrice(it) &&
-            getQty(ex) === getQty(it) &&
-            getNotes(ex) === getNotes(it)
-          )
-            return true;
-          return false;
-        });
-        if (!exists) {
-          const newIt = {
-            ...(it as any),
-            status: (it as any).status ?? OrderStatus.PENDING,
-          };
-          (doc.items as any[]).push(newIt as any);
+      const itemsToAdd = updateDto.items as any[];
+
+      const existsAcrossPeople = (it: any) => {
+        for (const p of doc.people || []) {
+          const found = (p.orders || []).some((ex: any) => {
+            const exMenu = ex.menuItemId ? String(ex.menuItemId) : undefined;
+            const itMenu = it.menuItemId ? String(it.menuItemId) : undefined;
+            if (
+              ex._id &&
+              (it as any).id &&
+              String(ex._id) === String((it as any).id)
+            )
+              return true;
+            if (
+              exMenu &&
+              itMenu &&
+              exMenu === itMenu &&
+              ex.name === it.name &&
+              getUnitPrice(ex) === getUnitPrice(it) &&
+              getQty(ex) === getQty(it)
+            )
+              return true;
+            if (
+              ex.name === it.name &&
+              getUnitPrice(ex) === getUnitPrice(it) &&
+              getQty(ex) === getQty(it) &&
+              getNotes(ex) === getNotes(it)
+            )
+              return true;
+            return false;
+          });
+          if (found) return true;
+        }
+        return false;
+      };
+
+      for (const it of itemsToAdd) {
+        if (existsAcrossPeople(it)) continue;
+        const newOrder = {
+          ...(it as any),
+          status: (it as any).status ?? OrderStatus.PENDING,
+        };
+        if (doc.people && Array.isArray(doc.people) && doc.people.length > 0) {
+          (doc.people[0].orders as any[]).push(newOrder as any);
+        } else {
+          doc.people = doc.people || [];
+          (doc.people as any[]).push({ id: undefined, name: 'Mesa', orders: [newOrder] } as any);
         }
       }
     }
@@ -397,7 +426,6 @@ export class OrdersService {
       (updateDto.people && updateDto.people.length)
     ) {
       let subtotal = 0;
-      for (const it of doc.items || []) subtotal += calcItemTotal(it);
       for (const p of doc.people || [])
         for (const it of p.orders || []) subtotal += calcItemTotal(it);
       doc.subtotal = subtotal;
@@ -486,14 +514,16 @@ export class OrdersService {
     const doc = await this.orderModel.findById(orderId).exec();
     if (!doc) throw new NotFoundException('Order not found');
 
-    // Try to remove from top-level items
+    // Try to remove from top-level items (if present)
     let removed = false;
-    const itemIndex = doc.items.findIndex(
-      (it) => String((it as any)._id) === String(itemId),
-    );
-    if (itemIndex >= 0) {
-      doc.items.splice(itemIndex, 1);
-      removed = true;
+    if ((doc as any).items && Array.isArray((doc as any).items)) {
+      const itemIndex = ((doc as any).items as any[]).findIndex(
+        (it) => String((it as any)._id) === String(itemId),
+      );
+      if (itemIndex >= 0) {
+        ((doc as any).items as any[]).splice(itemIndex, 1);
+        removed = true;
+      }
     }
 
     // If not found, try to remove from people[].orders
@@ -522,7 +552,6 @@ export class OrdersService {
     };
 
     let subtotal = 0;
-    for (const it of doc.items || []) subtotal += calcItemTotal(it);
     for (const p of doc.people || [])
       for (const it of p.orders || []) subtotal += calcItemTotal(it);
 

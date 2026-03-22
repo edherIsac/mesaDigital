@@ -104,10 +104,6 @@ export class Order {
 
   @Prop({ default: OrderStatus.PENDING, index: true, enum: OrderStatusValues })
   status: OrderStatus;
-
-  @Prop({ type: [OrderItemSchema], default: [] })
-  items: OrderItem[];
-
   @Prop({ type: [PersonSchema], default: [] })
   people: Person[];
 

@@ -11,39 +11,12 @@ import { Product } from "../Admin/Products/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import type { Comanda, ComandaPerson, ComandaTotals } from "./Comanda.interface";
+import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
 import OrderService from "./Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import { CreateOrderDto } from "./Order.service";
 
-// Backend response shapes (local types)
-type BackendOrderItem = {
-  _id?: string;
-  menuItemId?: string;
-  name?: string;
-  quantity?: number;
-  qty?: number;
-  notes?: string;
-  note?: string;
-  unitPrice?: number;
-  price?: number;
-  status?: string;
-};
-
-type BackendPerson = {
-  id?: string;
-  name?: string;
-  orders?: BackendOrderItem[];
-  seat?: number;
-};
-
-type BackendOrder = {
-  _id?: string;
-  orderNumber?: string;
-  status?: string;
-  placedAt?: string;
-  people?: BackendPerson[];
-  items?: BackendOrderItem[];
-};
+// Usamos las interfaces centralizadas para las respuestas del backend
 // Order creation handled elsewhere; page shows header info only for now
 
 export default function StartOrder() {
@@ -251,14 +224,14 @@ export default function StartOrder() {
     const loadOrderForMesa = async (mid?: string) => {
       if (!mid) return;
       try {
-        const order = (await OrderService.getOrder(mid)) as BackendOrder;
+        const order = (await OrderService.getOrder(mid)) as Order;
         if (!mounted || !order) return;
         if (mounted) setOrderStatus((order.status as OrderStatus) ?? OrderStatus.PENDING);
         // Map backend order -> ComandaPerson[] for UI
         const mappedPeople: ComandaPerson[] = [];
         if (order.people && Array.isArray(order.people) && order.people.length > 0) {
-          for (const p of order.people as BackendPerson[]) {
-            const mappedOrders = (p.orders || []).map((o: BackendOrderItem, oi: number) => ({
+          for (const p of order.people as Person[]) {
+            const mappedOrders = (p.orders || []).map((o: OrderItem, oi: number) => ({
               id: o._id ?? `${p.id ?? 'p'}-${oi}`,
               productId: o.menuItemId ? String(o.menuItemId) : undefined,
               product: null,
@@ -272,21 +245,6 @@ export default function StartOrder() {
             }));
             mappedPeople.push({ id: p.id ?? String(mappedPeople.length + 1), name: p.name ?? '', seat: p.seat, orders: mappedOrders });
           }
-        } else if (order.items && Array.isArray(order.items)) {
-          // fallback: single-person comanda with all items
-          const mappedOrders = (order.items || []).map((o: BackendOrderItem, oi: number) => ({
-            id: o._id ?? `i-${oi}`,
-            productId: o.menuItemId ? String(o.menuItemId) : undefined,
-            product: null,
-            name: o.name ?? '',
-            qty: o.quantity ?? o.qty ?? 1,
-            note: o.notes ?? o.note ?? "",
-            unitPrice: o.unitPrice ?? o.price ?? 0,
-            type: 'platillo',
-            coverImage: undefined,
-            status: o.status ?? 'pending',
-          }));
-          mappedPeople.push({ id: 1, name: 'Mesa', orders: mappedOrders });
         }
 
         // If some items reference a menuItemId, fetch their product to get coverImage
@@ -478,14 +436,14 @@ export default function StartOrder() {
       };
 
       if (mesa?.currentOrderId) {
-        const updated = (await OrderService.updateOrder(mesa.currentOrderId, payload)) as BackendOrder;
+        const updated = (await OrderService.updateOrder(mesa.currentOrderId, payload)) as Order;
         console.debug("Order updated", updated);
         if (updated && updated._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(updated._id), status: 'occupied' });
           setOrderStatus((updated.status as OrderStatus) ?? OrderStatus.PENDING);
         }
       } else {
-        const created = (await OrderService.createOrder(payload)) as BackendOrder;
+        const created = (await OrderService.createOrder(payload)) as Order;
         console.debug("Order created", created);
         if (created && created._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });
