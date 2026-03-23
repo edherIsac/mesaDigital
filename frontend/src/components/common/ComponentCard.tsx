@@ -7,6 +7,7 @@ interface ComponentCardProps {
   noHeader?: boolean;
   fillHeight?: boolean;
   bodyClassName?: string;
+  style?: React.CSSProperties;
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = ({
@@ -18,6 +19,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   noHeader = false,
   fillHeight = false,
   bodyClassName,
+  style,
 }) => {
   const outerClass = `rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] ${fillHeight ? "flex flex-col h-full min-h-0" : ""} ${className}`;
   const paddingClass = bodyClassName ?? 'p-4 sm:p-6';
@@ -26,6 +28,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   return (
     <div
       className={outerClass}
+      style={style}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}

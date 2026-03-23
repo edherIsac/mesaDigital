@@ -204,28 +204,28 @@ export default function KDS() {
     }
   };
 
-  const markOrderReady = async (orderId: string, groupKey?: string) => {
-    const key = groupKey || `order-${orderId}`;
-    setUpdatingIds((s) => ({ ...s, [key]: true }));
-    try {
-      await OrderService.updateOrderStatus(orderId, OrderStatus.READY);
-      await fetchOrders();
-    } catch (e) {
-      console.error("Failed to mark order ready", e);
-      alert.error("Error al marcar la comanda como lista");
-    } finally {
-      setUpdatingIds((s) => {
-        const c = { ...s };
-        delete c[key];
-        return c;
-      });
-    }
-  };
+  // const markOrderReady = async (orderId: string, groupKey?: string) => {
+  //   const key = groupKey || `order-${orderId}`;
+  //   setUpdatingIds((s) => ({ ...s, [key]: true }));
+  //   try {
+  //     await OrderService.updateOrderStatus(orderId, OrderStatus.READY);
+  //     await fetchOrders();
+  //   } catch (e) {
+  //     console.error("Failed to mark order ready", e);
+  //     alert.error("Error al marcar la comanda como lista");
+  //   } finally {
+  //     setUpdatingIds((s) => {
+  //       const c = { ...s };
+  //       delete c[key];
+  //       return c;
+  //     });
+  //   }
+  // };
 
-  // Tick to force periodic re-render so elapsed times update
+  // Tick to force periodic re-render so elapsed times and glow update (1s)
   const [, setTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setTick((s) => s + 1), 15000);
+    const t = setInterval(() => setTick((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -316,15 +316,16 @@ export default function KDS() {
                 const grp = visible[slotIndex];
                 if (!grp) {
                   return (
-                    <ComponentCard
-                      key={`empty-${slotIndex}`}
-                      noHeader
-                      className="shadow-sm hover:shadow-lg transition-shadow"
-                      fillHeight
-                      bodyClassName="p-2 sm:p-2 flex items-center justify-center text-gray-400"
-                    >
-                      <div className="text-sm">Vacío</div>
-                    </ComponentCard>
+                    <div key={`cell-${slotIndex}`} className="p-3 h-full min-h-0">
+                      <ComponentCard
+                        noHeader
+                        className="shadow-sm hover:shadow-lg transition-shadow h-full"
+                        fillHeight
+                        bodyClassName="p-2 sm:p-2 flex items-center justify-center text-gray-400"
+                      >
+                        <div className="text-sm">Vacío</div>
+                      </ComponentCard>
+                    </div>
                   );
                 }
 
@@ -333,28 +334,46 @@ export default function KDS() {
                 );
                 const tableLabel = tableLabelMap.get(tableKey) ?? "M?";
 
+                // Glow parameters based on age since placedAt
+                const placedTs = grp.placedAt ? new Date(String(grp.placedAt)).getTime() : 0;
+                const ageSec = placedTs ? Math.max(0, (Date.now() - placedTs) / 1000) : 0;
+                const GLOW_MAX_SECONDS = 600; // reach full red after 10 minutes (adjustable)
+                const ratio = Math.min(1, ageSec / GLOW_MAX_SECONDS);
+                const alpha = ratio; // 0 -> 1
+                // Extra-tight glow: minimal blur and spread, lower max alpha
+                const blur = 3 + ratio * 6; // 3 -> 9
+                const spread = ratio * 1.5; // 0 -> 1.5
+                const shadowColor = `rgba(255,0,0,${Math.min(0.45, alpha * 0.45)})`;
+                const boxShadow = ratio > 0 ? `0 0 ${blur}px ${spread}px ${shadowColor}` : "none";
+
                 return (
-                  <ComponentCard
-                    key={grp.orderId}
-                    noHeader
-                    className="shadow-sm hover:shadow-lg transition-shadow relative"
-                    fillHeight
-                    bodyClassName="p-2 sm:p-2"
-                  >
+                  <div key={`cell-${grp.orderId}`} className="p-3 h-full min-h-0">
+                    <ComponentCard
+                      noHeader
+                      className="shadow-sm hover:shadow-lg transition-shadow relative h-full"
+                      fillHeight
+                      bodyClassName="p-2 sm:p-2"
+                      style={{
+                        boxShadow,
+                        borderColor: ratio ? `rgba(255,0,0,${Math.min(0.25, ratio * 0.25)})` : undefined,
+                        transition: 'box-shadow 0.9s linear, border-color 0.9s linear',
+                        willChange: 'box-shadow, border-color',
+                      }}
+                    >
                     {extra > 0 && slotIndex === 5 && (
                       <div className="absolute top-2 right-2 bg-black text-white text-xs rounded px-2">
                         +{extra}
                       </div>
                     )}
 
-                    <div
-                      className="min-h-0"
-                      style={{
-                        display: "grid",
-                        gridTemplateRows: "auto 1fr auto",
-                        height: "100%",
-                      }}
-                    >
+                      <div
+                        className="min-h-0"
+                        style={{
+                          display: "grid",
+                          gridTemplateRows: "auto 1fr",
+                          height: "100%",
+                        }}
+                      >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-gray-900 dark:text-white/90 truncate">
@@ -460,17 +479,10 @@ export default function KDS() {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-end">
-                        <button
-                          disabled={!!updatingIds[`order-${grp.orderId}`]}
-                          className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                          onClick={() => markOrderReady(grp.orderId, `order-${grp.orderId}`)}
-                        >
-                          {updatingIds[`order-${grp.orderId}`] ? "..." : "Comanda lista"}
-                        </button>
-                      </div>
+                      {/* divider and "Comanda lista" button removed */}
                     </div>
                   </ComponentCard>
+                </div>
                 );
               });
             })()}
