@@ -11,6 +11,7 @@ import type { Product } from "../../interfaces/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
 import { useAlert } from "../../context/AlertContext";
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
+import { Category } from "../../constants/categories";
 import type { Comanda, ComandaPerson, ComandaTotals } from "../../interfaces/Comanda.interface";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
 import OrderService from "./Order.service";
@@ -264,7 +265,27 @@ export default function StartOrder() {
     setPendingSelection((prev) => (prev ? prev.map((it, i) => (i === index ? { ...it, note } : it)) : prev));
   };
 
-  const NOTE_SUGGESTIONS = ["Sin cebolla", "Poco chile", "Sin cilantro", "Extra salsa", "Sin sal"];
+  const DEFAULT_NOTE_SUGGESTIONS = ["Sin cebolla", "Poco chile", "Sin cilantro", "Extra salsa", "Sin sal"];
+  const BEVERAGE_NOTE_SUGGESTIONS = ["Con hielo", "Sin hielo", "Sin azúcar", "Sin gas", "Extra limón"];
+
+  const getQuickNotesForProduct = (product: Product): string[] => {
+    if (!product) return DEFAULT_NOTE_SUGGESTIONS;
+    const beverageCats = new Set<Category>([
+      Category.BEBIDAS_FRIAS,
+      Category.BEBIDAS_CALIENTES,
+      Category.JUGOS_LICUADOS,
+      Category.AGUAS_FRESCAS,
+      Category.REFRESCOS,
+      Category.CERVEZAS,
+      Category.VINOS,
+      Category.COCTELERIA,
+      Category.MEZCAL_TEQUILA,
+    ]);
+    if (Array.isArray(product.categories) && product.categories.some((c) => beverageCats.has(c))) {
+      return BEVERAGE_NOTE_SUGGESTIONS;
+    }
+    return DEFAULT_NOTE_SUGGESTIONS;
+  };
 
   const finalizeAddProducts = () => {
     if (!personToAddFor || !pendingSelection) return;
@@ -1185,7 +1206,7 @@ export default function StartOrder() {
                               />
                             </div>
                             <div className="mt-2 flex flex-wrap gap-1.5">
-                              {NOTE_SUGGESTIONS.map((s) => {
+                              {getQuickNotesForProduct(it.product).map((s) => {
                                 const active = it.note === s;
                                 return (
                                   <button

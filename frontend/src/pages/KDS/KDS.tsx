@@ -407,6 +407,11 @@ export default function KDS() {
                                             <div className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
                                               {it.name} <span className="text-xs text-gray-500">x{it.quantity}</span>
                                             </div>
+                                            {(it.notes || it.note) && (
+                                              <div className="text-xs italic text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                                {it.notes || it.note}
+                                              </div>
+                                            )}
                                           </div>
 
                                           <div className="flex items-center gap-1">
