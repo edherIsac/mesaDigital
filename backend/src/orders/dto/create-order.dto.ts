@@ -1,6 +1,5 @@
 import { IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateOrderItemDto } from './create-order-item.dto';
 import { CreatePersonDto } from './create-person.dto';
 
 export class CreateOrderDto {
@@ -16,11 +15,7 @@ export class CreateOrderDto {
   @IsOptional()
   type?: string;
 
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => CreateOrderItemDto)
-  items?: CreateOrderItemDto[];
+  // legacy `items` removed from schema; use `people` instead
 
   @IsArray()
   @IsOptional()

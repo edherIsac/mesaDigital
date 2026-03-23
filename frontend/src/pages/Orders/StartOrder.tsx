@@ -504,16 +504,6 @@ export default function StartOrder() {
     }
     setPlacing(true);
     try {
-      // Build items (flatten) and people payload
-      const items = people.flatMap((p) =>
-        p.orders.map((o) => ({
-          menuItemId: o.productId,
-          name: o.name,
-          quantity: o.qty ?? 1,
-          unitPrice: o.unitPrice ?? 0,
-          notes: o.note,
-        })),
-      );
 
       const peoplePayload = people.map((p) => ({
         id: String(p.id),
@@ -531,20 +521,20 @@ export default function StartOrder() {
       const payload: CreateOrderDto = {
         tableId: tableId,
         type: "dine_in",
-        items,
+        // items,
         people: peoplePayload,
         notes: undefined,
       };
 
       if (mesa?.currentOrderId) {
-        const updated = (await OrderService.updateOrder(mesa.currentOrderId, payload)) as Order;
+        const updated = await OrderService.updateOrder(mesa.currentOrderId, payload);
         console.debug("Order updated", updated);
         if (updated && updated._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(updated._id), status: 'occupied' });
           setOrderStatus((updated.status as OrderStatus) ?? OrderStatus.PENDING);
         }
       } else {
-        const created = (await OrderService.createOrder(payload)) as Order;
+        const created = await OrderService.createOrder(payload);
         console.debug("Order created", created);
         if (created && created._id && mesa) {
           setMesa({ ...mesa, currentOrderId: String(created._id), status: 'occupied' });

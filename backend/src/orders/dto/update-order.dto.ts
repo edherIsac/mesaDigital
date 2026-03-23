@@ -8,7 +8,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderStatus } from '../order-status.enum';
-import { CreateOrderItemDto } from './create-order-item.dto';
 import { CreatePersonDto } from './create-person.dto';
 
 export class UpdateOrderDto {
@@ -36,11 +35,7 @@ export class UpdateOrderDto {
   @IsOptional()
   total?: number;
 
-  @IsArray()
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => CreateOrderItemDto)
-  items?: CreateOrderItemDto[];
+  // legacy `items` removed from schema; use `people` instead
 
   @IsArray()
   @IsOptional()

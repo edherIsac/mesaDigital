@@ -1,5 +1,6 @@
 import api from "../../api/client";
 import { OrderStatus } from "../../constants/orderStatus";
+import { Order } from "../../interfaces/Order.interface";
 
 export interface CreateOrderItemDto {
   menuItemId?: string;
@@ -21,14 +22,14 @@ export interface CreateOrderDto {
   locationId?: string;
   tableId?: string;
   type?: string;
-  items?: CreateOrderItemDto[];
+  // items?: CreateOrderItemDto[];
   people?: CreatePersonDto[];
   notes?: string;
   priority?: string;
 }
 
 export async function createOrder(body: CreateOrderDto) {
-  const res = await api.post('/orders', body);
+  const res = await api.post<Order>('/orders', body);
   return res.data;
 }
 
@@ -38,7 +39,7 @@ export async function getOrder(id: string) {
 }
 
 export async function updateOrder(id: string, body: Partial<CreateOrderDto>) {
-  const res = await api.patch(`/orders/${id}`, body);
+  const res = await api.patch<Order>(`/orders/${id}`, body);
   return res.data;
 }
 

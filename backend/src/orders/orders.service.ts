@@ -18,38 +18,41 @@ export class OrdersService {
   async create(createDto: CreateOrderDto) {
     const orderNumber = `ODR-${Date.now()}`;
     const now = new Date();
-    // Normalize items: support both `items` (flat) and `people` (comanda style)
-    let items = createDto.items || [];
-    if ((!items || items.length === 0) && (createDto as any).people) {
-      // flatten people -> items
-      const people = (createDto as any).people as any[];
-      const flat: any[] = [];
-      for (const p of people) {
-        const orders = p.orders || [];
-        for (const o of orders) {
-          const mapped = {
-            menuItemId: o.menuItemId,
-            name: o.name,
-            quantity: o.quantity || o.qty || 1,
-            unitPrice: o.unitPrice ?? o.price ?? 0,
-            modifiers: o.modifiers || [],
-            notes: o.notes || o.note || undefined,
-            stationId: o.stationId,
-          };
-          flat.push(mapped);
-        }
-      }
-      items = flat;
+    // Normalize input into `people` (preferred)
+    let peopleForDoc: any[] | undefined = undefined;
+    if (
+      (createDto as any).people &&
+      Array.isArray((createDto as any).people) &&
+      (createDto as any).people.length
+    ) {
+      peopleForDoc = (createDto as any).people.map((p: any) => ({
+        ...p,
+        orders: (p.orders || []).map((o: any) => ({
+          menuItemId: o.menuItemId,
+          name: o.name,
+          quantity: o.quantity || o.qty || 1,
+          unitPrice: o.unitPrice ?? o.price ?? 0,
+          modifiers: o.modifiers || [],
+          notes: o.notes || o.note || undefined,
+          status: o.status ?? OrderStatus.PENDING,
+          stationId: o.stationId,
+        })),
+      }));
     }
 
-    // Basic totals calculation
+    // Calculate subtotal from peopleForDoc (items were removed from schema)
     let subtotal = 0;
-    for (const it of items || []) {
-      const price = it.unitPrice || 0;
-      subtotal += price * (it.quantity || 1);
-      if (it.modifiers) {
-        for (const m of it.modifiers)
-          subtotal += (m.priceAdjust || 0) * (m.qty || 1);
+    if (peopleForDoc) {
+      for (const p of peopleForDoc) {
+        for (const it of p.orders || []) {
+          const price = it.unitPrice || 0;
+          const qty = it.quantity || it.qty || 1;
+          subtotal += price * qty;
+          if (it.modifiers && Array.isArray(it.modifiers)) {
+            for (const m of it.modifiers)
+              subtotal += (m.priceAdjust || 0) * (m.qty || 1);
+          }
+        }
       }
     }
 
@@ -67,26 +70,7 @@ export class OrdersService {
       }
     }
 
-    // Build the order document payload once so it can be reused for transactional
-    // and non-transactional flows. We no longer persist a top-level `items` array
-    // — normalize into `people` when necessary so older clients sending `items`
-    // are still supported.
-    let peopleForDoc: any[] | undefined = undefined;
-    if ((createDto as any).people && Array.isArray((createDto as any).people) && (createDto as any).people.length) {
-      peopleForDoc = (createDto as any).people;
-    } else if (items && items.length) {
-      // Convert flat items into a single-person orders list
-      const mappedOrders = (items || []).map((it: any) => ({
-        menuItemId: it.menuItemId,
-        name: it.name,
-        quantity: it.quantity || it.qty || 1,
-        unitPrice: it.unitPrice ?? it.price ?? 0,
-        modifiers: it.modifiers || [],
-        notes: it.notes || it.note || undefined,
-        status: it.status ?? OrderStatus.PENDING,
-      }));
-      peopleForDoc = [{ id: '1', name: 'Mesa', orders: mappedOrders }];
-    }
+    // (peopleForDoc prepared above)
 
     const orderDoc: Partial<Order> = {
       orderNumber,
@@ -215,23 +199,23 @@ export class OrdersService {
 
   async findForKDS(query: { locationId?: string } = {}) {
     const filter: any = {};
-    if (query.locationId) filter.locationId = new Types.ObjectId(query.locationId);
+    if (query.locationId)
+      filter.locationId = new Types.ObjectId(query.locationId);
     // Exclude cancelled and completed (paid) orders
     filter.status = { $nin: [OrderStatus.CANCELLED, OrderStatus.COMPLETED] };
 
     // Fetch candidates then filter out orders where ALL items are READY (or no items at all).
     // This ensures KDS shows only orders that have at least one item not yet ready.
-    const candidates = await this.orderModel.find(filter).sort({ placedAt: -1 }).lean();
-    const isReady = (st?: any) => String(st ?? '').toLowerCase() === String(OrderStatus.READY).toLowerCase();
+    const candidates = await this.orderModel
+      .find(filter)
+      .sort({ placedAt: -1 })
+      .lean();
+    const isReady = (st?: any) =>
+      String(st ?? '').toLowerCase() ===
+      String(OrderStatus.READY).toLowerCase();
 
     const hasPending = (order: any) => {
-      // Check top-level items
-      const items = order.items || [];
-      for (const it of items) {
-        if (!isReady(it?.status)) return true;
-      }
-
-      // Check people -> orders
+      // Check people -> orders for any non-ready items
       const people = order.people || [];
       for (const p of people) {
         const porders = p.orders || [];
@@ -243,7 +227,9 @@ export class OrdersService {
       return false;
     };
 
-    return Array.isArray(candidates) ? candidates.filter((o) => hasPending(o)) : [];
+    return Array.isArray(candidates)
+      ? candidates.filter((o) => hasPending(o))
+      : [];
   }
 
   async findOne(id: string) {
@@ -275,7 +261,7 @@ export class OrdersService {
     };
 
     // Reject additions when order is in terminal states
-    const rawStatus = (doc.status || '').toString();
+    const rawStatus = doc.status;
     if (
       rawStatus === OrderStatus.CANCELLED ||
       rawStatus === OrderStatus.COMPLETED
@@ -284,63 +270,6 @@ export class OrdersService {
       throw new NotFoundException(
         'Order cannot be modified in its current state',
       );
-    }
-
-    // If there are items to add, merge them into `people[].orders` (avoid duplicates)
-    if (
-      updateDto.items &&
-      Array.isArray(updateDto.items) &&
-      updateDto.items.length
-    ) {
-      const itemsToAdd = updateDto.items as any[];
-
-      const existsAcrossPeople = (it: any) => {
-        for (const p of doc.people || []) {
-          const found = (p.orders || []).some((ex: any) => {
-            const exMenu = ex.menuItemId ? String(ex.menuItemId) : undefined;
-            const itMenu = it.menuItemId ? String(it.menuItemId) : undefined;
-            if (
-              ex._id &&
-              (it as any).id &&
-              String(ex._id) === String((it as any).id)
-            )
-              return true;
-            if (
-              exMenu &&
-              itMenu &&
-              exMenu === itMenu &&
-              ex.name === it.name &&
-              getUnitPrice(ex) === getUnitPrice(it) &&
-              getQty(ex) === getQty(it)
-            )
-              return true;
-            if (
-              ex.name === it.name &&
-              getUnitPrice(ex) === getUnitPrice(it) &&
-              getQty(ex) === getQty(it) &&
-              getNotes(ex) === getNotes(it)
-            )
-              return true;
-            return false;
-          });
-          if (found) return true;
-        }
-        return false;
-      };
-
-      for (const it of itemsToAdd) {
-        if (existsAcrossPeople(it)) continue;
-        const newOrder = {
-          ...(it as any),
-          status: (it as any).status ?? OrderStatus.PENDING,
-        };
-        if (doc.people && Array.isArray(doc.people) && doc.people.length > 0) {
-          (doc.people[0].orders as any[]).push(newOrder as any);
-        } else {
-          doc.people = doc.people || [];
-          (doc.people as any[]).push({ id: undefined, name: 'Mesa', orders: [newOrder] } as any);
-        }
-      }
     }
 
     // If there are people to add/merge
@@ -392,7 +321,7 @@ export class OrdersService {
                     ...(o as any),
                     status: (o as any).status ?? OrderStatus.PENDING,
                   };
-                  existing.orders.push(newOrder as any);
+                  existing.orders.push(newOrder);
                 }
               }
             }
@@ -411,7 +340,7 @@ export class OrdersService {
             status: o.status ?? OrderStatus.PENDING,
           }));
         }
-        (doc.people as any[]).push(newPerson as any);
+        (doc.people as any[]).push(newPerson);
       }
     }
 
@@ -420,11 +349,8 @@ export class OrdersService {
       doc.status = updateDto.status as any;
     if (typeof updateDto.notes !== 'undefined') doc.notes = updateDto.notes;
 
-    // Recalculate subtotal/total if items/people were modified or client did not provide explicit total
-    if (
-      (updateDto.items && updateDto.items.length) ||
-      (updateDto.people && updateDto.people.length)
-    ) {
+    // Recalculate subtotal/total if people were modified or client did not provide explicit total
+    if (updateDto.people && updateDto.people.length) {
       let subtotal = 0;
       for (const p of doc.people || [])
         for (const it of p.orders || []) subtotal += calcItemTotal(it);
@@ -439,42 +365,7 @@ export class OrdersService {
   }
 
   async updateItem(orderId: string, itemId: string, dto: UpdateItemStatusDto) {
-    const oid = new Types.ObjectId(orderId);
-    const iid = new Types.ObjectId(itemId);
-
-    const update: any = {};
-    if (dto.status) update['items.$.status'] = dto.status;
-    if (dto.assignedTo)
-      update['items.$.assignedTo'] = new Types.ObjectId(dto.assignedTo);
-    if (dto.notes) update['items.$.notes'] = dto.notes;
-
-    // Try to update top-level items first
-    const res = await this.orderModel
-      .findOneAndUpdate(
-        { _id: oid, 'items._id': iid },
-        { $set: update },
-        { new: true },
-      )
-      .exec();
-
-    if (res) {
-      // If the item was moved to PREPARING, ensure the order status reflects it
-      if (dto.status === OrderStatus.PREPARING) {
-        const current = (res.status || '').toString();
-        if (
-          current !== OrderStatus.PREPARING &&
-          current !== OrderStatus.CANCELLED &&
-          current !== OrderStatus.COMPLETED
-        ) {
-          res.status = OrderStatus.PREPARING as any;
-          await (res as any).save();
-        }
-      }
-      return res;
-    }
-
-    // If not found in top-level items, attempt to find and update inside people[].orders
-    const doc = await this.orderModel.findById(oid).exec();
+    const doc = await this.orderModel.findById(orderId).exec();
     if (!doc) throw new NotFoundException('Order not found');
 
     let found = false;
@@ -494,9 +385,8 @@ export class OrdersService {
 
     if (!found) throw new NotFoundException('Order or item not found');
 
-    // If the updated item was set to PREPARING, update order status too (unless it's cancelled/completed)
     if (dto.status === OrderStatus.PREPARING) {
-      const current = (doc.status || '').toString();
+      const current = doc.status;
       if (
         current !== OrderStatus.PREPARING &&
         current !== OrderStatus.CANCELLED &&
@@ -513,30 +403,16 @@ export class OrdersService {
   async deleteItem(orderId: string, itemId: string) {
     const doc = await this.orderModel.findById(orderId).exec();
     if (!doc) throw new NotFoundException('Order not found');
-
-    // Try to remove from top-level items (if present)
+    // Remove item from people[].orders (root `items` removed from schema)
     let removed = false;
-    if ((doc as any).items && Array.isArray((doc as any).items)) {
-      const itemIndex = ((doc as any).items as any[]).findIndex(
+    for (const person of doc.people || []) {
+      const idx = (person.orders || []).findIndex(
         (it) => String((it as any)._id) === String(itemId),
       );
-      if (itemIndex >= 0) {
-        ((doc as any).items as any[]).splice(itemIndex, 1);
+      if (idx >= 0) {
+        person.orders.splice(idx, 1);
         removed = true;
-      }
-    }
-
-    // If not found, try to remove from people[].orders
-    if (!removed) {
-      for (const person of doc.people || []) {
-        const idx = (person.orders || []).findIndex(
-          (it) => String((it as any)._id) === String(itemId),
-        );
-        if (idx >= 0) {
-          person.orders.splice(idx, 1);
-          removed = true;
-          break;
-        }
+        break;
       }
     }
 
@@ -570,7 +446,7 @@ export class OrdersService {
     const stRaw = (order.status || '').toString().toLowerCase();
     const normalized: string =
       stRaw === 'canceled' ? OrderStatus.CANCELLED : stRaw;
-    if (normalized === OrderStatus.CANCELLED) return order;
+    if (normalized === OrderStatus.CANCELLED.toString()) return order;
 
     order.status = OrderStatus.CANCELLED;
     await order.save();
