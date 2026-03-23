@@ -167,11 +167,32 @@ export const useAlert = (): AlertContextValue => {
     console.warn("useAlert called outside AlertProvider — returning no-op stub.");
     const noopId = () => "";
     const stub: AlertContextValue = {
-      success: (message: string, title?: string) => noopId(),
-      error: (message: string, title?: string) => noopId(),
-      info: (message: string, title?: string) => noopId(),
-      warning: (message: string, title?: string) => noopId(),
-      show: (variant: Variant, message: string, title?: string) => noopId(),
+      success: (message: string, title?: string) => {
+        void message;
+        void title;
+        return noopId();
+      },
+      error: (message: string, title?: string) => {
+        void message;
+        void title;
+        return noopId();
+      },
+      info: (message: string, title?: string) => {
+        void message;
+        void title;
+        return noopId();
+      },
+      warning: (message: string, title?: string) => {
+        void message;
+        void title;
+        return noopId();
+      },
+      show: (variant: Variant, message: string, title?: string) => {
+        void variant;
+        void message;
+        void title;
+        return noopId();
+      },
       dismiss: (_id: string) => {},
       confirm: (_message: string) => Promise.resolve(false),
     };
