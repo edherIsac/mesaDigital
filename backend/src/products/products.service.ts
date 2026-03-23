@@ -20,7 +20,7 @@ export class ProductsService {
   }
 
   async update(id: string, data: Partial<Product>): Promise<ProductDocument | null> {
-    return this.productModel.findByIdAndUpdate(id, data, { new: true }).exec();
+    return this.productModel.findByIdAndUpdate(id, data, { returnDocument: 'after' }).exec();
   }
 
   async remove(id: string): Promise<boolean> {

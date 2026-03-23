@@ -40,7 +40,7 @@ export class TablesService {
     if (!id || !Types.ObjectId.isValid(id)) throw new NotFoundException('Table not found');
     const toSet: any = { ...(dto as any) };
     if (toSet.status) toSet.status = normalizeStatus(String(toSet.status)) ?? toSet.status;
-    const updated = await this.tableModel.findByIdAndUpdate(id, { $set: toSet }, { new: true }).exec();
+    const updated = await this.tableModel.findByIdAndUpdate(id, { $set: toSet }, { returnDocument: 'after' }).exec();
     if (!updated) throw new NotFoundException('Table not found after update');
     return updated;
   }

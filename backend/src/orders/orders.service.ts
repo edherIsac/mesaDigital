@@ -105,7 +105,7 @@ export class OrdersService {
           .findByIdAndUpdate(
             tId,
             { $set: { currentOrderId: created._id, status: 'occupied' } },
-            { new: true, session },
+            { session, returnDocument: 'after' },
           )
           .exec();
         if (!updatedTable)
@@ -151,7 +151,7 @@ export class OrdersService {
               .findByIdAndUpdate(
                 tId,
                 { $set: { currentOrderId: created._id, status: 'occupied' } },
-                { new: true },
+                { returnDocument: 'after' },
               )
               .exec();
             if (!updatedTable) {
