@@ -5,3 +5,4 @@ export { default as GridShape } from './GridShape';
 export { ScrollToTop } from './ScrollToTop';
 export { ThemeToggleButton } from './ThemeToggleButton';
 export { default as ThemeTogglerTwo } from './ThemeTogglerTwo';
+export { default as OrderCard } from './OrderCard';
