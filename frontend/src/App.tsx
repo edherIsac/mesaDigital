@@ -14,6 +14,7 @@ import ProductsList from "./pages/Admin/Products/ProductsList";
 import ProductDetails from "./pages/Admin/Products/ProductDetails";
 import KDS from "./pages/KDS/KDS";
 import Caja from "./pages/Caja/Caja";
+import CajaDetails from "./pages/caja-details/Caja-details";
 import MapaMesas from "./pages/Mapas/MapaMesas";
 import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
 import MesaNew from "./pages/Admin/Mesas/MesaNew";
@@ -158,6 +159,13 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["CASHIER", "ADMIN"]}>
                 <Caja />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="caja/detalles/:id" element={
+            <RequireAuth>
+              <RequireRole roles={["CASHIER", "ADMIN"]}>
+                <CajaDetails />
               </RequireRole>
             </RequireAuth>
           } />

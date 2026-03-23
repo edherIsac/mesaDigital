@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { PageBreadcrumb, PageMeta, OrderCard } from "../../components";
 import type { OrderCardModel } from "../../components/common/OrderCard";
 
@@ -38,6 +39,8 @@ export default function Caja() {
     };
   }, []);
 
+  const navigate = useNavigate();
+
   return (
     <div>
       <PageMeta title="Caja | mesaDigital" description="Punto de pago — gestión de pagos y cierre de órdenes" />
@@ -63,7 +66,7 @@ export default function Caja() {
           >
             {mockOrders.map((o) => (
               <div key={o.id} className="p-3 h-full min-h-0">
-                <OrderCard order={o} onClick={(id) => console.log('navegar a orden', id)} />
+                <OrderCard order={o} onClick={(id) => navigate(`/caja/detalles/${id}`)} />
               </div>
             ))}
           </div>
