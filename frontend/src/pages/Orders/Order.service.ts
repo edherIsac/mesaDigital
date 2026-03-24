@@ -58,6 +58,11 @@ export async function getKDSOrders(params?: { locationId?: string }) {
   return res.data;
 }
 
+export async function getCajaOrders(params?: { locationId?: string }) {
+  const res = await api.get('/orders/caja', { params });
+  return res.data;
+}
+
 export async function updateOrderItem(
   orderId: string,
   itemId: string,
@@ -77,5 +82,5 @@ export async function cancelOrder(id: string) {
   return res.data;
 }
 
-const OrderService = { createOrder, getOrder, getOrders, getKDSOrders, updateOrder, updateOrderStatus, updateOrderItem, deleteOrderItem, cancelOrder };
+const OrderService = { createOrder, getOrder, getOrders, getKDSOrders, getCajaOrders, updateOrder, updateOrderStatus, updateOrderItem, deleteOrderItem, cancelOrder };
 export default OrderService;

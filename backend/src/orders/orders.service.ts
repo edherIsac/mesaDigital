@@ -232,6 +232,15 @@ export class OrdersService {
       : [];
   }
 
+  async findForCaja(query: { locationId?: string } = {}) {
+    const filter: any = {};
+    if (query.locationId)
+      filter.locationId = new Types.ObjectId(query.locationId);
+
+    // For caja we return all orders (no filtering) sorted by most recent
+    return this.orderModel.find(filter).sort({ placedAt: -1 }).lean();
+  }
+
   async findOne(id: string) {
     const doc = await this.orderModel.findById(id).exec();
     if (!doc) throw new NotFoundException('Order not found');

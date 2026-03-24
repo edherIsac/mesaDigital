@@ -35,6 +35,11 @@ export class OrdersController {
     return this.ordersService.findForKDS({ locationId });
   }
 
+  @Get('caja')
+  findForCaja(@Query('locationId') locationId?: string) {
+    return this.ordersService.findForCaja({ locationId });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.ordersService.findOne(id);
