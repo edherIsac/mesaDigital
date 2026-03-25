@@ -13,6 +13,14 @@ export default function CajaDetails(): JSX.Element {
     { id: "2", name: "Ensalada César", qty: 1, unitPrice: 6.0 },
     { id: "3", name: "Tacos al Pastor", qty: 3, unitPrice: 2.75 },
     { id: "4", name: "Agua mineral", qty: 2, unitPrice: 1.5 },
+    { id: "5", name: "Lomo Saltado", qty: 1, unitPrice: 9.25 },
+    { id: "6", name: "Hamburguesa clásica", qty: 2, unitPrice: 7.0 },
+    { id: "7", name: "Sopa del día", qty: 1, unitPrice: 4.5 },
+    { id: "8", name: "Nachos con queso", qty: 2, unitPrice: 5.5 },
+    { id: "9", name: "Enchiladas", qty: 1, unitPrice: 6.75 },
+    { id: "10", name: "Café americano", qty: 3, unitPrice: 1.75 },
+    { id: "11", name: "Brownie", qty: 2, unitPrice: 3.5 },
+    { id: "12", name: "Agua con gas", qty: 1, unitPrice: 1.75 },
   ];
 
   const subtotal = MOCK_ITEMS.reduce((s, it) => s + it.qty * it.unitPrice, 0);
@@ -74,7 +82,7 @@ export default function CajaDetails(): JSX.Element {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-auto p-4">
+                <div className="flex-1 min-h-0 overflow-auto">
                   <POSList items={MOCK_ITEMS} badgeVariant="solid" badgeColor="success" badgeSize="md" />
                 </div>
               </div>

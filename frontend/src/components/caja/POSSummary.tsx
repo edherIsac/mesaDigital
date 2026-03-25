@@ -9,7 +9,7 @@ type Props = {
 };
 
 const formatCurrency = (n: number) =>
-  n.toLocaleString(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+  n.toLocaleString("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 
 export default function POSSummary({ subtotal, taxes = 0, total, onCharge, onCancel }: Props) {
   return (

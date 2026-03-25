@@ -11,7 +11,7 @@ export type POSItem = {
 };
 
 const formatCurrency = (n: number) =>
-  n.toLocaleString(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+  n.toLocaleString("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 
 type POSListProps = {
   items: POSItem[];
@@ -38,10 +38,10 @@ export default function POSList({
       <table className="min-w-full divide-y divide-gray-700">
         <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Producto</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300">Cantidad</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300">Precio</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300">Importe</th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Producto</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Cantidad</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Precio</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Importe</th>
           </tr>
         </thead>
         <tbody className="bg-transparent divide-y divide-gray-800">
