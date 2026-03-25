@@ -13,18 +13,22 @@ export type POSItem = {
 const formatCurrency = (n: number) =>
   n.toLocaleString("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2 });
 
+type BadgeColor =
+  | "primary"
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  | "light"
+  | "dark";
+
 type POSListProps = {
   items: POSItem[];
   badgeVariant?: "light" | "solid";
-  badgeColor?:
-    | "primary"
-    | "success"
-    | "error"
-    | "warning"
-    | "info"
-    | "light"
-    | "dark";
+  badgeColor?: BadgeColor;
   badgeSize?: "sm" | "md";
+  qtyBadgeColor?: BadgeColor;
+  priceBadgeColor?: BadgeColor;
 };
 
 export default function POSList({
@@ -32,7 +36,11 @@ export default function POSList({
   badgeVariant = "light",
   badgeColor = "primary",
   badgeSize = "sm",
+  qtyBadgeColor,
+  priceBadgeColor,
 }: POSListProps) {
+  const qtyColor = qtyBadgeColor ?? badgeColor;
+  const priceColor = priceBadgeColor ?? badgeColor;
   return (
     <div className="rounded-lg bg-transparent shadow-sm overflow-hidden">
       <table className="min-w-full divide-y divide-gray-700">
@@ -70,10 +78,14 @@ export default function POSList({
                 </div>
               </td>
               <td className="px-4 py-3 text-center text-sm text-gray-200">
-                <Badge variant={badgeVariant} color={badgeColor} size={badgeSize}>{item.qty}</Badge>
+                <Badge variant={badgeVariant} color={qtyColor} size={badgeSize}>{item.qty}</Badge>
               </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-200">{formatCurrency(item.unitPrice)}</td>
-              <td className="px-4 py-3 text-center text-sm font-medium text-gray-100">{formatCurrency(item.qty * item.unitPrice)}</td>
+              <td className="px-4 py-3 text-center text-sm text-gray-200">
+                <Badge variant={badgeVariant} color={priceColor} size={badgeSize}>{formatCurrency(item.unitPrice)}</Badge>
+              </td>
+              <td className="px-4 py-3 text-center text-sm font-medium text-gray-100">
+                {formatCurrency(item.qty * item.unitPrice)}
+              </td>
             </tr>
           ))}
         </tbody>

@@ -83,7 +83,7 @@ export default function CajaDetails(): JSX.Element {
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-auto">
-                  <POSList items={MOCK_ITEMS} badgeVariant="solid" badgeColor="success" badgeSize="md" />
+                  <POSList items={MOCK_ITEMS} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
                 </div>
               </div>
             </ComponentCard>
