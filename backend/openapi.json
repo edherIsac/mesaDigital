@@ -674,6 +674,34 @@
           "Tables"
         ]
       }
+    },
+    "/api/v1/admin/db/clear": {
+      "post": {
+        "operationId": "AdminController_clearCollection",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/tables/reset": {
+      "post": {
+        "operationId": "AdminController_resetTables",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Admin"
+        ]
+      }
     }
   },
   "info": {

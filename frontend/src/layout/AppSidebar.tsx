@@ -117,6 +117,7 @@ const AppSidebar: React.FC = () => {
     if (role === "ADMIN") {
       const adminSub = [
         { name: "Usuarios", path: "/admin/users" },
+        { name: "Sistema", path: "/admin/system" },
         { name: "Productos", path: "/admin/products" },
         { name: "Mesas", path: "/admin/mesas" },
       ];

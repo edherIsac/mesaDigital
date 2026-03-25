@@ -11,6 +11,7 @@ import { OrdersModule } from './orders/orders.module';
 import { KdsModule } from './kds/kds.module';
 import { SocketModule } from './socket/socket.module';
 import { ProductsModule } from './products/products.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -33,6 +34,8 @@ import { ProductsModule } from './products/products.module';
     OrdersModule,
     KdsModule,
     SocketModule,
+    // Admin tools
+    AdminModule,
   ],
   providers: [
     // Apply ThrottlerGuard globally to all routes
