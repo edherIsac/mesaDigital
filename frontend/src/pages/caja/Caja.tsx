@@ -13,7 +13,7 @@ function calcSubtotal(items: POSItem[]) {
   return items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
 }
 
-export default function Caja(): JSX.Element {
+export default function Caja(): React.ReactElement {
   const subtotal = calcSubtotal(MOCK_ITEMS);
   const taxes = +(subtotal * 0.1).toFixed(2); // placeholder
   const total = +(subtotal + taxes).toFixed(2);

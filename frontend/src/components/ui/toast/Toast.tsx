@@ -57,11 +57,12 @@ const Toast: React.FC<Props> = ({ id, variant = 'default', title, message, durat
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onRequestClose(id);
+    const onKey = (e: Event) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key === 'Escape') onRequestClose(id);
     };
-    el.addEventListener('keydown', onKey as any);
-    return () => el.removeEventListener('keydown', onKey as any);
+    el.addEventListener('keydown', onKey);
+    return () => el.removeEventListener('keydown', onKey);
   }, [id, onRequestClose]);
 
   const iconAccent = {

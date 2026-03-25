@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { PageBreadcrumb, PageMeta, OrderCard } from "../../components";
 import type { OrderCardModel } from "../../components/common/OrderCard";
 import OrderService from "../Orders/Order.service";
-import type { Order } from "../../interfaces/Order.interface";
+import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
 
 // Orders are loaded from backend /orders/caja
 
@@ -38,23 +38,26 @@ export default function Caja() {
     OrderService.getCajaOrders()
       .then((res: Order[]) => {
         if (!mounted) return;
-        const mapped: OrderCardModel[] = (res || []).map((o: any) => {
+        const mapped: OrderCardModel[] = (res || []).map((o: Order) => {
           const id = o._id ?? o.id ?? String(Math.random()).slice(2, 9);
           const table = o.tableLabel ?? o.tableId ?? '—';
           const people = Array.isArray(o.people) ? o.people.length : 0;
-          const subtotal = typeof o.total === 'number' && o.total ? o.total : (typeof o.subtotal === 'number' ? o.subtotal : null);
-          const computedTotal = subtotal ?? (Array.isArray(o.people) ? o.people.reduce((s: number, p: any) => {
-            return s + ((p.orders || []).reduce((ss: number, it: any) => ss + ((it.unitPrice ?? it.price ?? 0) * (it.quantity ?? it.qty ?? 1)), 0));
+          const maybeTotal = (o as Record<string, unknown>).total;
+          const maybeSubtotal = (o as Record<string, unknown>).subtotal;
+          const subtotal = typeof maybeTotal === 'number' && maybeTotal ? maybeTotal : (typeof maybeSubtotal === 'number' ? maybeSubtotal : null);
+          const computedTotal = subtotal ?? (Array.isArray(o.people) ? o.people.reduce((s: number, p: Person) => {
+            return s + ((p.orders || []).reduce((ss: number, it: OrderItem) => ss + ((it.unitPrice ?? it.price ?? 0) * (it.quantity ?? it.qty ?? 1)), 0));
           }, 0) : 0);
           const placedAt = o.placedAt ?? o.createdAt ?? Date.now();
-          const priority = (o.priority || '').toString().toLowerCase();
+          const priority = String((o as Record<string, unknown>).priority || '').toLowerCase();
           const status: OrderCardModel['status'] = priority === 'urgent' ? 'urgent' : (String(o.status || '').toLowerCase() === 'ready' ? 'ready' : 'pending');
           return { id: String(id), table, people, total: Math.round(computedTotal || 0), placedAt, status } as OrderCardModel;
         });
         setOrders(mapped);
       })
-      .catch((err) => {
-        console.error('Failed to load caja orders', err);
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('Failed to load caja orders', msg);
         setOrders([]);
       })
       .finally(() => { if (mounted) setLoadingOrders(false); });

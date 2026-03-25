@@ -5,7 +5,7 @@ import POSSummary from "../../components/caja/POSSummary";
 import ComponentCard from "../../components/common/ComponentCard";
 import client from "../../api/client";
 
-export default function CajaDetails(): JSX.Element {
+export default function CajaDetails(): React.ReactElement {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
@@ -36,6 +36,7 @@ export default function CajaDetails(): JSX.Element {
   const [total, setTotal] = useState<number>(initialTotal);
   const [loadingOrder, setLoadingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState<number>(0);
 
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
@@ -70,7 +71,7 @@ export default function CajaDetails(): JSX.Element {
         const data = res.data ?? res;
 
         const people = Array.isArray(data?.people) ? data.people : [];
-        const groupsArr: { personName?: string; items: POSItem[] }[] = [];
+        const groupsArr: { personName?: string; seat?: number; items: POSItem[] }[] = [];
         for (const p of people) {
           const porders = Array.isArray(p.orders) ? p.orders : [];
           const personItems: POSItem[] = [];
@@ -122,15 +123,16 @@ export default function CajaDetails(): JSX.Element {
         setGroups(groupsArr.length ? groupsArr : null);
           setItems(allItems.length ? allItems : MOCK_ITEMS);
 
-        const newSubtotal = typeof data?.subtotal !== 'undefined' ? data.subtotal : mapped.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+        const newSubtotal = typeof data?.subtotal !== 'undefined' ? data.subtotal : allItems.reduce((s, it) => s + it.qty * it.unitPrice, 0);
         const newTaxes = typeof data?.tax !== 'undefined' ? data.tax : +(newSubtotal * 0.1).toFixed(2);
         const newTotal = typeof data?.total !== 'undefined' ? data.total : +(newSubtotal + newTaxes).toFixed(2);
 
         setSubtotal(newSubtotal);
         setTaxes(newTaxes);
         setTotal(newTotal);
-      } catch (e: any) {
-        setOrderError(e?.message || 'Error cargando la orden');
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setOrderError(msg || 'Error cargando la orden');
       } finally {
         setLoadingOrder(false);
       }
@@ -141,7 +143,7 @@ export default function CajaDetails(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, retryKey]);
 
   return (
     <div>
@@ -181,8 +183,42 @@ export default function CajaDetails(): JSX.Element {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0">
+                <div className="flex-1 min-h-0 relative">
                   <POSList items={items} groups={groups ?? undefined} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
+
+                  {loadingOrder && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="w-10 h-10 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <div className="text-sm text-white">Cargando orden…</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {orderError && !loadingOrder && (
+                    <div className="absolute left-4 right-4 top-4 z-50 flex items-center justify-center">
+                      <div className="w-full max-w-3xl bg-error-600 text-white px-4 py-2 rounded-md shadow-md flex items-center justify-between gap-4">
+                        <div className="text-sm truncate">{orderError}</div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setRetryKey((k) => k + 1)}
+                            className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded"
+                          >
+                            Reintentar
+                          </button>
+                          <button
+                            onClick={() => setOrderError(null)}
+                            className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </ComponentCard>

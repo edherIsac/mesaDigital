@@ -26,7 +26,9 @@ export function OrderItemRow({ item }: Props) {
 
   const idKey = String(item._id ?? item.id ?? item.name ?? '0');
   const fallback = productImages[hashString(idKey) % productImages.length];
-  const imageUrl = item.coverImage ?? (item as any).product?.coverImage ?? fallback;
+  const product = item.product as { coverImage?: unknown } | null | undefined;
+  const productCover = product && typeof product.coverImage === 'string' ? product.coverImage : undefined;
+  const imageUrl = item.coverImage ?? productCover ?? fallback;
 
   const priceDisplay = unitPrice != null
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(unitPrice)
