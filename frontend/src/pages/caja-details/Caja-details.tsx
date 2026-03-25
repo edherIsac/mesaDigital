@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import POSList, { POSItem } from "../../components/caja/POSList";
 import POSSummary from "../../components/caja/POSSummary";
 import ComponentCard from "../../components/common/ComponentCard";
+import client from "../../api/client";
 
 export default function CajaDetails(): JSX.Element {
   const { id } = useParams<{ id?: string }>();
@@ -23,9 +24,16 @@ export default function CajaDetails(): JSX.Element {
     { id: "12", name: "Agua con gas", qty: 1, unitPrice: 1.75 },
   ];
 
-  const subtotal = MOCK_ITEMS.reduce((s, it) => s + it.qty * it.unitPrice, 0);
-  const taxes = +(subtotal * 0.1).toFixed(2); // placeholder
-  const total = +(subtotal + taxes).toFixed(2);
+  const initialSubtotal = MOCK_ITEMS.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+  const initialTaxes = +(initialSubtotal * 0.1).toFixed(2);
+  const initialTotal = +(initialSubtotal + initialTaxes).toFixed(2);
+
+  const [items, setItems] = useState<POSItem[]>(MOCK_ITEMS);
+  const [subtotal, setSubtotal] = useState<number>(initialSubtotal);
+  const [taxes, setTaxes] = useState<number>(initialTaxes);
+  const [total, setTotal] = useState<number>(initialTotal);
+  const [loadingOrder, setLoadingOrder] = useState<boolean>(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
@@ -46,6 +54,85 @@ export default function CajaDetails(): JSX.Element {
       if (ro) ro.disconnect();
     };
   }, []);
+
+  // Fetch order details when `id` is present and map to POSList items
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    const fetchOrder = async () => {
+      setLoadingOrder(true);
+      setOrderError(null);
+      try {
+        const res = await client.get(`/orders/${id}`);
+        const data = res.data ?? res;
+
+        const mapped: POSItem[] = [];
+        const people = Array.isArray(data?.people) ? data.people : [];
+        for (const p of people) {
+          const porders = Array.isArray(p.orders) ? p.orders : [];
+          for (const it of porders) {
+            const menuItemId = it.menuItemId ? String(it.menuItemId) : undefined;
+            mapped.push({
+              id: String(it._id ?? it.id ?? Math.random().toString(36).slice(2)),
+              name: it.name ?? 'Item',
+              qty: it.quantity ?? it.qty ?? 1,
+              unitPrice: it.unitPrice ?? it.price ?? 0,
+              notes: it.notes ?? undefined,
+              image: it.coverImage ?? it.image ?? undefined,
+              menuItemId,
+            });
+          }
+        }
+
+        if (cancelled) return;
+
+        // If items reference products, try to fetch product cover images
+        const uniqueMenuIds = Array.from(new Set(mapped.map((m) => m.menuItemId).filter(Boolean))) as string[];
+        if (uniqueMenuIds.length) {
+          try {
+            const results = await Promise.allSettled(uniqueMenuIds.map((pid) => client.get(`/products/${pid}`)));
+            const coverMap: Record<string, string | null> = {};
+            results.forEach((r, i) => {
+              const pid = uniqueMenuIds[i];
+              if (r.status === 'fulfilled') {
+                const d = r.value.data ?? r.value;
+                coverMap[pid] = d?.coverImage ?? null;
+              } else {
+                coverMap[pid] = null;
+              }
+            });
+
+            mapped.forEach((m) => {
+              if (!m.image && m.menuItemId && coverMap[m.menuItemId]) m.image = coverMap[m.menuItemId] as string;
+            });
+          } catch {
+            // ignore image fetch errors
+          }
+        }
+
+        setItems(mapped.length ? mapped : MOCK_ITEMS);
+
+        const newSubtotal = typeof data?.subtotal !== 'undefined' ? data.subtotal : mapped.reduce((s, it) => s + it.qty * it.unitPrice, 0);
+        const newTaxes = typeof data?.tax !== 'undefined' ? data.tax : +(newSubtotal * 0.1).toFixed(2);
+        const newTotal = typeof data?.total !== 'undefined' ? data.total : +(newSubtotal + newTaxes).toFixed(2);
+
+        setSubtotal(newSubtotal);
+        setTaxes(newTaxes);
+        setTotal(newTotal);
+      } catch (e: any) {
+        setOrderError(e?.message || 'Error cargando la orden');
+      } finally {
+        setLoadingOrder(false);
+      }
+    };
+
+    fetchOrder();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   return (
     <div>
@@ -83,7 +170,7 @@ export default function CajaDetails(): JSX.Element {
                 </div>
 
                 <div className="flex-1 min-h-0">
-                  <POSList items={MOCK_ITEMS} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
+                  <POSList items={items} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
                 </div>
               </div>
             </ComponentCard>

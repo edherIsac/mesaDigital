@@ -7,6 +7,7 @@ export type POSItem = {
   qty: number;
   unitPrice: number;
   image?: string;
+  menuItemId?: string;
   notes?: string;
 };
 
@@ -78,7 +79,7 @@ export default function POSList({
                 </div>
               </td>
               <td className="px-4 py-3 text-center text-sm text-gray-200">
-                <Badge variant={badgeVariant} color={qtyColor} size={badgeSize}>{item.qty}</Badge>
+                <Badge variant={badgeVariant} color={qtyColor} size={badgeSize}>{'X' + item.qty}</Badge>
               </td>
               <td className="px-4 py-3 text-center text-sm text-gray-200">
                 <Badge variant={badgeVariant} color={priceColor} size={badgeSize}>{formatCurrency(item.unitPrice)}</Badge>
