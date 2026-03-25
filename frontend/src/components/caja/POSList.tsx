@@ -42,14 +42,14 @@ export default function POSList({
   const qtyColor = qtyBadgeColor ?? badgeColor;
   const priceColor = priceBadgeColor ?? badgeColor;
   return (
-    <div className="rounded-lg bg-transparent shadow-sm overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-700">
+    <div className="rounded-lg bg-transparent shadow-sm overflow-auto h-full min-h-0">
+      <table className="w-full min-w-full table-fixed divide-y divide-gray-700">
         <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Producto</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Cantidad</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Precio</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 sticky top-0 bg-gray-900/70 z-10">Importe</th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-20">Producto</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-20">Cantidad</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-20">Precio</th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-20">Importe</th>
           </tr>
         </thead>
         <tbody className="bg-transparent divide-y divide-gray-800">

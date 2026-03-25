@@ -68,7 +68,7 @@ export default function CajaDetails(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-9">
           <div
             ref={dynamicRef}
             style={dynamicHeight ? { height: `${dynamicHeight}px` } : undefined}
@@ -82,7 +82,7 @@ export default function CajaDetails(): JSX.Element {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="flex-1 min-h-0">
                   <POSList items={MOCK_ITEMS} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
                 </div>
               </div>
@@ -90,7 +90,7 @@ export default function CajaDetails(): JSX.Element {
           </div>
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <div className="sticky top-6">
             <ComponentCard title="Resumen" className="shadow-sm hover:shadow-lg transition-shadow">
               <POSSummary
