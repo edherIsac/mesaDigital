@@ -7,14 +7,17 @@ import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
 import { SocketProvider } from "./context/SocketContext.tsx";
+import { NotificationProvider } from "./context/NotificationContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <SocketProvider>
-        <AppWrapper>
-          <App />
-        </AppWrapper>
+        <NotificationProvider>
+          <AppWrapper>
+            <App />
+          </AppWrapper>
+        </NotificationProvider>
       </SocketProvider>
     </ThemeProvider>
   </StrictMode>,

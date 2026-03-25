@@ -5,6 +5,7 @@ import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import Button from "../../../components/ui/button/Button";
 import { EyeCloseIcon, EyeIcon } from "../../../icons";
+import { ROLE_OPTIONS, ROLE_LABELS } from "../../../constants/roles";
 
 const ROLE_STYLES: Record<string, string> = {
   SUPERVISOR:
@@ -412,7 +413,7 @@ export default function UserDetails() {
                   "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300"
                 }`}
               >
-                {role}
+                {ROLE_LABELS[role] ?? role}
               </span>
             )}
             {!isNew && createdAt && (
@@ -555,11 +556,11 @@ export default function UserDetails() {
                   disabled={loading}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                 >
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="SUPERVISOR">SUPERVISOR</option>
-                  <option value="WAITER">WAITER</option>
-                  <option value="KITCHEN">KITCHEN</option>
-                  <option value="CASHIER">CASHIER</option>
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

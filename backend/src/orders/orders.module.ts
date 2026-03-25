@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrdersService } from './orders.service';
+import { SocketModule } from '../socket/socket.module'; // Added SocketModule import
 import { OrdersController } from './orders.controller';
 import { TablesService } from './tables.service';
 import { TablesController } from './tables.controller';
@@ -21,6 +22,7 @@ import { OrderEvent, OrderEventSchema } from './schemas/order-event.schema';
       { name: Table.name, schema: TableSchema },
       { name: OrderEvent.name, schema: OrderEventSchema },
     ]),
+    SocketModule, // Added SocketModule to imports
   ],
   controllers: [OrdersController, TablesController],
   providers: [OrdersService, TablesService],

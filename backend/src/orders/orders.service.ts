@@ -7,12 +7,14 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { OrderStatus } from './order-status.enum';
+import { SocketService } from '../socket/socket.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Table.name) private tableModel: Model<TableDocument>,
+    private readonly socketService: SocketService,
   ) {}
 
   async create(createDto: CreateOrderDto) {
@@ -116,6 +118,18 @@ export class OrdersService {
 
       await session.commitTransaction();
       session.endSession();
+      try {
+        // Emit a lightweight order-created notification
+        this.socketService.emit('order:created', {
+          orderId: String(created._id),
+          tableLabel: created.tableLabel,
+          total: created.total,
+          placedAt: created.placedAt,
+        });
+      } catch (e) {
+        // non-fatal: do not block order creation on socket errors
+        console.warn('Failed to emit order:created', e);
+      }
       return created;
     } catch (err: any) {
       // Clean up session if it was started
@@ -181,6 +195,16 @@ export class OrdersService {
             }
             throw upErr;
           }
+        }
+        try {
+          this.socketService.emit('order:created', {
+            orderId: String(created._id),
+            tableLabel: created.tableLabel,
+            total: created.total,
+            placedAt: created.placedAt,
+          });
+        } catch (e) {
+          console.warn('Failed to emit order:created', e);
         }
         return created;
       }
@@ -370,6 +394,16 @@ export class OrdersService {
     }
 
     await doc.save();
+    try {
+      this.socketService.emit('order:updated', {
+        orderId: String(doc._id),
+        status: doc.status,
+        tableLabel: doc.tableLabel,
+        total: doc.total,
+      });
+    } catch (e) {
+      console.warn('Failed to emit order:updated', e);
+    }
     return doc;
   }
 
@@ -406,6 +440,16 @@ export class OrdersService {
     }
 
     await doc.save();
+    try {
+      this.socketService.emit('order:updated', {
+        orderId: String(doc._id),
+        status: doc.status,
+        tableLabel: doc.tableLabel,
+        total: doc.total,
+      });
+    } catch (e) {
+      console.warn('Failed to emit order:updated', e);
+    }
     return doc;
   }
 
@@ -444,6 +488,16 @@ export class OrdersService {
     doc.total = subtotal + (doc.tax || 0);
 
     await doc.save();
+    try {
+      this.socketService.emit('order:updated', {
+        orderId: String(doc._id),
+        status: doc.status,
+        tableLabel: doc.tableLabel,
+        total: doc.total,
+      });
+    } catch (e) {
+      console.warn('Failed to emit order:updated', e);
+    }
     return doc;
   }
 
@@ -473,6 +527,16 @@ export class OrdersService {
       }
     }
 
+    try {
+      this.socketService.emit('order:updated', {
+        orderId: String(order._id),
+        status: order.status,
+        tableLabel: order.tableLabel,
+        total: order.total,
+      });
+    } catch (e) {
+      console.warn('Failed to emit order:updated', e);
+    }
     return order;
   }
 }
