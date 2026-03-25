@@ -86,14 +86,34 @@ export const NotificationProvider = ({ children }: PropsWithChildren<unknown>) =
     const onOrderUpdate = (payload: unknown) => {
       const obj = isObject(payload) ? payload as Record<string, unknown> : {};
       const title = (obj.title as string | undefined) ?? `Pedido ${(obj.orderId as string | undefined) ?? ''} actualizado`;
-      const message = (obj.message as string | undefined) ?? (obj.status as string | undefined) ?? undefined;
+      // If payload contains newPeopleCount/newItemsCount, show only those deltas (for kitchen)
+      const newPeople = Number(obj.newPeopleCount ?? 0);
+      const newItems = Number(obj.newItemsCount ?? 0);
+      const tableLabel = obj.tableLabel as string | undefined;
+      let message: string | undefined;
+      if (newPeople > 0 || newItems > 0) {
+        const parts: string[] = [];
+        if (tableLabel) parts.push(`Mesa: ${tableLabel}`);
+        if (newPeople > 0) parts.push(`+${newPeople} personas`);
+        if (newItems > 0) parts.push(`+${newItems} platillos`);
+        message = parts.join(' — ');
+      } else {
+        message = (obj.message as string | undefined) ?? (obj.status as string | undefined) ?? undefined;
+      }
       addNotification({ type: 'order', title, message, data: payload });
     };
 
     const onOrderCreate = (payload: unknown) => {
       const obj = isObject(payload) ? payload as Record<string, unknown> : {};
       const title = (obj.title as string | undefined) ?? `Nuevo pedido ${(obj.orderId as string | undefined) ?? ''}`;
-      const message = (obj.message as string | undefined) ?? `Total: ${(obj.total as string | number | undefined) ?? ''}`;
+      const tableLabel = obj.tableLabel as string | undefined;
+      const people = Number(obj.newPeopleCount ?? obj.peopleCount ?? 0);
+      const items = Number(obj.newItemsCount ?? obj.itemsCount ?? 0);
+      const parts: string[] = [];
+      if (tableLabel) parts.push(`Mesa: ${tableLabel}`);
+      if (people > 0) parts.push(`${people} personas`);
+      if (items > 0) parts.push(`${items} platillos`);
+      const message = (obj.message as string | undefined) ?? (parts.length ? parts.join(' — ') : `Total: ${(obj.total as string | number | undefined) ?? ''}`);
       addNotification({ type: 'order', title, message, data: payload });
     };
 

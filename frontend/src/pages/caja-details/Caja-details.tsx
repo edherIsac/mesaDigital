@@ -221,7 +221,7 @@ export default function CajaDetails(): React.ReactElement {
           </button>
 
           <div>
-            <h1 className="text-2xl font-semibold text-gray-100">Caja — {id ?? "Detalle"}</h1>
+            <h1 className="text-2xl font-semibold text-gray-100">Orden — {id ?? "Detalle"}</h1>
           </div>
         </div>
       </div>

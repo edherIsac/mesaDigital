@@ -104,11 +104,15 @@ export class OrdersService {
 
     // Calculate subtotal from peopleForDoc (items were removed from schema)
     let subtotal = 0;
+    let peopleCount = 0;
+    let itemsCount = 0;
     if (peopleForDoc) {
       for (const p of peopleForDoc) {
+        peopleCount += 1;
         for (const it of p.orders || []) {
           const price = it.unitPrice || 0;
           const qty = it.quantity || it.qty || 1;
+          itemsCount += qty;
           subtotal += price * qty;
           if (it.modifiers && Array.isArray(it.modifiers)) {
             for (const m of it.modifiers)
@@ -188,29 +192,17 @@ export class OrdersService {
             tableLabel: created.tableLabel,
             total: created.total,
             placedAt: created.placedAt,
+            // counts for notification UI
+            peopleCount: peopleCount,
+            itemsCount: itemsCount,
+            newPeopleCount: peopleCount,
+            newItemsCount: itemsCount,
           },
           roles,
         );
       } catch (e) {
         // non-fatal: do not block order creation on socket errors
         console.warn('Failed to emit order:created', e);
-      }
-      return created;
-    } catch (err: any) {
-      // Clean up session if it was started
-      if (session) {
-        try {
-          await session.abortTransaction();
-        } catch (e) {
-          // ignore
-          console.log('Failed to abort transaction:', e);
-        }
-        try {
-          session.endSession();
-        } catch (e) {
-          // ignore
-          console.log('Failed to end session:', e);
-        }
       }
 
       // If transactions are not supported on this server (common in local dev single-node),
@@ -270,6 +262,10 @@ export class OrdersService {
               tableLabel: created.tableLabel,
               total: created.total,
               placedAt: created.placedAt,
+              peopleCount: peopleCount,
+              itemsCount: itemsCount,
+              newPeopleCount: peopleCount,
+              newItemsCount: itemsCount,
             },
             roles,
           );
@@ -377,6 +373,9 @@ export class OrdersService {
     }
 
     // If there are people to add/merge
+    // Track counts of newly added people and newly added items for notifications
+    let addedPeopleCount = 0;
+    let addedItemsCount = 0;
     if (
       updateDto.people &&
       Array.isArray(updateDto.people) &&
@@ -426,6 +425,8 @@ export class OrdersService {
                     status: (o as any).status ?? OrderStatus.PENDING,
                   };
                   existing.orders.push(newOrder);
+                  // Count added items (respecting quantity)
+                  addedItemsCount += getQty(o);
                 }
               }
             }
@@ -439,12 +440,15 @@ export class OrdersService {
         // Otherwise, add as a new person entry (ensure orders have default status)
         const newPerson: any = { ...(p as any) };
         if (newPerson.orders && Array.isArray(newPerson.orders)) {
+          // Count items being added for this new person
+          for (const o of newPerson.orders) addedItemsCount += getQty(o);
           newPerson.orders = newPerson.orders.map((o: any) => ({
             ...o,
             status: o.status ?? OrderStatus.PENDING,
           }));
         }
         (doc.people as any[]).push(newPerson);
+        addedPeopleCount += 1;
       }
     }
 
@@ -471,7 +475,7 @@ export class OrdersService {
         this.notifyOrderEvent(
           doc,
           'order:status.changed',
-          { oldStatus: oldOrderStatus, newStatus: doc.status },
+          { oldStatus: oldOrderStatus, newStatus: doc.status, newPeopleCount: (typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0), newItemsCount: (typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0) },
           this.rolesForOrderStatus(doc.status),
         );
       }
@@ -480,7 +484,7 @@ export class OrdersService {
       this.notifyOrderEvent(
         doc,
         'order:updated',
-        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total },
+        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total, newPeopleCount: (typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0), newItemsCount: (typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0) },
         this.rolesForOrderStatus(doc.status),
       );
     } catch (e) {
