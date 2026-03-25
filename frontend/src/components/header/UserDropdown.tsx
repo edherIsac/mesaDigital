@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import api from "../../api/client";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<{ name?: string; email?: string } | null>(
-    null,
-  );
+  const [user, setUser] = useState<{
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
+  } | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem("user");
@@ -15,7 +18,6 @@ export default function UserDropdown() {
         setUser(JSON.parse(raw));
       } catch {}
     }
-
     const onStorage = (e: StorageEvent) => {
       if (e.key === "user") {
         if (e.newValue) {
@@ -29,6 +31,30 @@ export default function UserDropdown() {
     };
 
     window.addEventListener("storage", onStorage);
+
+    // If we have a stored user but no avatarUrl, try to refresh from server
+    const tryRefresh = async () => {
+      try {
+        const stored = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        if (stored && token) {
+          const parsed = JSON.parse(stored);
+          if (!parsed.avatarUrl) {
+            const resp = await api.get("/auth/me");
+            const data = resp?.data;
+            if (data) {
+              localStorage.setItem("user", JSON.stringify(data));
+              setUser(data);
+            }
+          }
+        }
+      } catch (err) {
+        // ignore errors silently
+      }
+    };
+
+    tryRefresh();
+
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
@@ -39,14 +65,30 @@ export default function UserDropdown() {
   function closeDropdown() {
     setIsOpen(false);
   }
+  const initials = (user?.name ?? "?")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("") || "?";
   return (
     <div className="relative">
       <button
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+        <span className="mr-3 overflow-hidden rounded-full h-11 w-11 inline-flex items-center justify-center bg-brand-100 text-brand-700 text-xs font-semibold dark:bg-brand-500/20 dark:text-brand-400">
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user?.name ?? "User"}
+              className="object-cover h-full w-full"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/images/user/owner.jpg";
+              }}
+            />
+          ) : (
+            initials
+          )}
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">

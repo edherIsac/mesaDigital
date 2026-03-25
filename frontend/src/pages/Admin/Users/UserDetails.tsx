@@ -24,6 +24,7 @@ export default function UserDetails() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("WAITER");
   const [active, setActive] = useState<boolean>(true);
@@ -70,9 +71,21 @@ export default function UserDetails() {
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setError(null);
-    if (!name || !email || (!password && isNew)) {
+    if (!name || !email || (isNew && !password)) {
       setError("Nombre, correo y contraseña son obligatorios");
       return;
+    }
+
+    // If a password is provided (create or edit), require confirmation and match
+    if (password) {
+      if (!confirmPassword) {
+        setError("Debe confirmar la contraseña");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Las contraseñas no coinciden");
+        return;
+      }
     }
 
     try {
@@ -133,7 +146,10 @@ export default function UserDetails() {
     if (avatarObjectUrlRef.current) {
       try {
         URL.revokeObjectURL(avatarObjectUrlRef.current);
-      } catch {}
+      } catch(e) {
+        // eslint-disable-next-line no-console
+        console.warn("Failed to revoke object URL", e);
+      }
     }
     const url = URL.createObjectURL(f);
     avatarObjectUrlRef.current = url;
@@ -160,7 +176,10 @@ export default function UserDetails() {
     if (avatarObjectUrlRef.current) {
       try {
         URL.revokeObjectURL(avatarObjectUrlRef.current);
-      } catch {}
+      } catch(e) {
+        // eslint-disable-next-line no-console
+        console.warn("Failed to revoke object URL", e);
+      }
       avatarObjectUrlRef.current = null;
     }
     setAvatarFile(null);
@@ -173,7 +192,10 @@ export default function UserDetails() {
       if (avatarObjectUrlRef.current) {
         try {
           URL.revokeObjectURL(avatarObjectUrlRef.current);
-        } catch {}
+        } catch(e) {
+          // eslint-disable-next-line no-console
+          console.warn("Failed to revoke object URL", e);
+        }
       }
     };
   }, []);
@@ -529,6 +551,38 @@ export default function UserDetails() {
                     }
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? (
+                      <EyeIcon className="size-5 fill-current" />
+                    ) : (
+                      <EyeCloseIcon className="size-5 fill-current" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="confirmPassword">
+                  Repetir contraseña {isNew && <span className="text-red-500">*</span>}
+                  {!isNew && (
+                    <span className="ml-1 text-xs font-normal text-gray-400">
+                      (solo si desea cambiar)
+                    </span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isNew ? "Repite la contraseña" : "Repite la nueva contraseña"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={loading}
                   />
                   <button

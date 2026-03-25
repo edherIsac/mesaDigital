@@ -128,7 +128,7 @@ export default function App() {
           } />
           <Route path="kds" element={
             <RequireAuth>
-              <RequireRole roles={["CHEF", "ADMIN"]}>
+              <RequireRole roles={["KITCHEN", "ADMIN"]}>
                 <KDS />
               </RequireRole>
             </RequireAuth>

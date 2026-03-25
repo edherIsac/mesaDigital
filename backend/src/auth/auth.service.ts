@@ -52,6 +52,7 @@ export class AuthService {
           email: 'root@test.com',
           role: 'ADMIN',
           createdAt: new Date().toISOString(),
+          avatarUrl: null,
         },
       };
     }
@@ -76,6 +77,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
+        avatarUrl: (user as any).avatarUrl ?? null,
       },
     };
   }

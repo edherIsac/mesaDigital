@@ -86,7 +86,7 @@ const AppSidebar: React.FC = () => {
   const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
   const buildMainItems = (role: string | null): NavItem[] => {
     const extra: NavItem[] = [];
-    if (role === "ADMIN" || role === "CHEF") {
+    if (role === "ADMIN" || role === "KITCHEN") {
       extra.push({
         icon: (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
