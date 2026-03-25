@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router";
+import { useSocket } from "../../hooks/useSocket";
 import POSList, { POSItem } from "../../components/caja/POSList";
 import POSSummary from "../../components/caja/POSSummary";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -31,12 +32,15 @@ export default function CajaDetails(): React.ReactElement {
   const [items, setItems] = useState<POSItem[]>(MOCK_ITEMS);
   const [groups, setGroups] = useState<{ personName?: string; seat?: number; items: POSItem[] }[] | null>(null);
   const [tableLabel, setTableLabel] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<string | null>(null);
   const [subtotal, setSubtotal] = useState<number>(initialSubtotal);
   const [taxes, setTaxes] = useState<number>(initialTaxes);
   const [total, setTotal] = useState<number>(initialTotal);
   const [loadingOrder, setLoadingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState<number>(0);
+
+  const { socket, joinRooms, leaveRooms } = useSocket();
 
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
@@ -92,6 +96,7 @@ export default function CajaDetails(): React.ReactElement {
 
         if (cancelled) return;
           setTableLabel(data?.tableLabel ?? null);
+          setTableId(data?.tableId ? String(data.tableId) : null);
 
         // If items reference products, try to fetch product cover images
         const allItems = groupsArr.flatMap((g) => g.items);
@@ -144,6 +149,53 @@ export default function CajaDetails(): React.ReactElement {
       cancelled = true;
     };
   }, [id, retryKey]);
+
+  // Join order/table rooms and subscribe to relevant socket events
+  useEffect(() => {
+    if (!id || !socket) return;
+
+    const rooms: string[] = [`order:${id}`];
+    if (tableId) rooms.push(`table:${tableId}`);
+
+    let joined = false;
+    (async () => {
+      try {
+        if (joinRooms) {
+          joined = await joinRooms(rooms);
+        } else {
+          socket.emit('join', { rooms });
+          joined = true;
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+
+    const handleAny = (payload: any) => {
+      if (!payload) return;
+      if (String(payload.orderId) !== String(id)) return;
+      // Refresh order data
+      setRetryKey((k) => k + 1);
+    };
+
+    socket.on('order:item:status.changed', handleAny);
+    socket.on('order:status.changed', handleAny);
+    socket.on('order:updated', handleAny);
+
+    return () => {
+      try {
+        socket.off('order:item:status.changed', handleAny);
+        socket.off('order:status.changed', handleAny);
+        socket.off('order:updated', handleAny);
+      } catch (_) {}
+      if (joined) {
+        try {
+          if (leaveRooms) leaveRooms(rooms);
+          else socket.emit('leave', { rooms });
+        } catch (_) {}
+      }
+    };
+  }, [socket, id, tableId, joinRooms, leaveRooms]);
 
   return (
     <div>

@@ -4,6 +4,7 @@ import { PageBreadcrumb, PageMeta, OrderCard } from "../../components";
 import type { OrderCardModel } from "../../components/common/OrderCard";
 import OrderService from "../Orders/Order.service";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
+import { useSocket } from '../../hooks/useSocket';
 
 // Orders are loaded from backend /orders/caja
 
@@ -31,6 +32,8 @@ export default function Caja() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderCardModel[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { socket } = useSocket();
 
   useEffect(() => {
     let mounted = true;
@@ -62,7 +65,27 @@ export default function Caja() {
       })
       .finally(() => { if (mounted) setLoadingOrders(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [refreshKey]);
+
+  // Socket subscriptions: refresh caja list when relevant events arrive
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (_payload: any) => {
+      setRefreshKey((k) => k + 1);
+    };
+
+    socket.on('order:item:status.changed', handler);
+    socket.on('order:status.changed', handler);
+    socket.on('order:updated', handler);
+    socket.on('order:created', handler);
+
+    return () => {
+      socket.off('order:item:status.changed', handler);
+      socket.off('order:status.changed', handler);
+      socket.off('order:updated', handler);
+      socket.off('order:created', handler);
+    };
+  }, [socket]);
 
   return (
     <div>

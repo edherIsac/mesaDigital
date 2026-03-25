@@ -8,6 +8,7 @@ import type { Order } from "../../interfaces/Order.interface";
 import { itemStatusLabel, itemStatusClass } from "../../constants/statuses";
 import { Mesa } from "../../interfaces/Mesa.interface";
 import { useNavigate } from "react-router";
+import { useSocket } from '../../hooks/useSocket';
 
 export default function MapaMesas() {
   const [mesas, setMesas] = useState<Mesa[]>([]);
@@ -69,10 +70,63 @@ export default function MapaMesas() {
       }
     };
     load();
+
     return () => {
       mounted = false;
     };
   }, []);
+
+  // Socket subscriptions: refresh mesas when orders change
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (_payload: any) => {
+      // Re-run the load effect by forcing a reload
+      // Simple approach: call MesaService.fetchMesas + enrich again
+      (async () => {
+        try {
+          const data = await MesaService.fetchMesas();
+          const mesasList = data ?? [];
+          const orderIds = Array.from(
+            new Set(mesasList.map((x) => x.currentOrderId).filter(Boolean)),
+          ) as string[];
+          const orderStatusMap = new Map<string, string>();
+          if (orderIds.length > 0) {
+            const orders = await Promise.all(
+              orderIds.map((id) => OrderService.getOrder(id).catch(() => null) as Promise<Order | null>),
+            );
+            orderIds.forEach((id, idx) => {
+              const o = orders[idx];
+              if (o && o.status) orderStatusMap.set(id, o.status);
+            });
+          }
+          const enriched = mesasList.map((m) => ({
+            ...m,
+            orderStatus: m.currentOrderId
+              ? orderStatusMap.get(m.currentOrderId)
+              : undefined,
+          }));
+          setMesas(enriched);
+        } catch {
+          setMesas([]);
+        }
+      })();
+    };
+
+    socket.on('order:created', handler);
+    socket.on('order:item:status.changed', handler);
+    socket.on('order:status.changed', handler);
+    socket.on('order:updated', handler);
+    socket.on('order:item:removed', handler);
+
+    return () => {
+      socket.off('order:created', handler);
+      socket.off('order:item:status.changed', handler);
+      socket.off('order:status.changed', handler);
+      socket.off('order:updated', handler);
+      socket.off('order:item:removed', handler);
+    };
+  }, [socket]);
 
   // Navegar a la pantalla de inicio de comanda
   const goToStartOrder = (m: Mesa) => {

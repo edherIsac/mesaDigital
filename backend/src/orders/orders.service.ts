@@ -17,6 +17,66 @@ export class OrdersService {
     private readonly socketService: SocketService,
   ) {}
 
+  private rolesForOrderStatus(status?: string) {
+    const s = (status || '').toString().toLowerCase();
+    switch (s) {
+      case String(OrderStatus.ACCEPTED):
+      case String(OrderStatus.PREPARING):
+        return ['KITCHEN', 'SUPERVISOR'];
+      case String(OrderStatus.READY):
+        return ['WAITER', 'CASHIER', 'SUPERVISOR'];
+      case String(OrderStatus.PACKAGED):
+        return ['CASHIER', 'WAITER', 'SUPERVISOR'];
+      case String(OrderStatus.SERVED):
+      case String(OrderStatus.DELIVERED):
+        return ['SUPERVISOR', 'ADMIN'];
+      case String(OrderStatus.CANCELLED):
+        return ['SUPERVISOR', 'ADMIN', 'WAITER'];
+      case String(OrderStatus.COMPLETED):
+        return ['ADMIN', 'SUPERVISOR', 'CASHIER'];
+      default:
+        return ['SUPERVISOR', 'KITCHEN', 'ADMIN'];
+    }
+  }
+
+  private rolesForItemStatus(status?: string) {
+    const s = (status || '').toString().toLowerCase();
+    switch (s) {
+      case String(OrderStatus.PREPARING):
+        return ['KITCHEN', 'SUPERVISOR'];
+      case String(OrderStatus.READY):
+        return ['WAITER', 'CASHIER'];
+      case String(OrderStatus.SERVED):
+        return ['SUPERVISOR', 'WAITER'];
+      case String(OrderStatus.CANCELLED):
+        return ['SUPERVISOR', 'ADMIN'];
+      default:
+        return ['SUPERVISOR'];
+    }
+  }
+
+  private notifyOrderEvent(
+    order: any,
+    eventName: string,
+    payload: Record<string, any> = {},
+    extraRoles: string[] = [],
+  ) {
+    try {
+      const orderId = String(order._id ?? order.id ?? '');
+      const tableId = order.tableId ? String(order.tableId) : undefined;
+      const base = { orderId, tableId, ...payload };
+
+      // Compose rooms: specific order/table + role rooms
+      const roleRooms = (extraRoles || []).map((r) => `role:${r}`);
+      const rooms = [...roleRooms, `order:${orderId}`];
+      if (tableId) rooms.push(`table:${tableId}`);
+
+      this.socketService.emitToRooms(eventName, base, rooms);
+    } catch (e) {
+      console.warn('Failed notifyOrderEvent', e);
+    }
+  }
+
   async create(createDto: CreateOrderDto) {
     const orderNumber = `ODR-${Date.now()}`;
     const now = new Date();
@@ -119,13 +179,18 @@ export class OrdersService {
       await session.commitTransaction();
       session.endSession();
       try {
-        // Emit a lightweight order-created notification
-        this.socketService.emit('order:created', {
-          orderId: String(created._id),
-          tableLabel: created.tableLabel,
-          total: created.total,
-          placedAt: created.placedAt,
-        });
+        // Emit a lightweight order-created notification to relevant roles/rooms
+        const roles = ['KITCHEN', 'SUPERVISOR', 'ADMIN'];
+        this.notifyOrderEvent(
+          created,
+          'order:created',
+          {
+            tableLabel: created.tableLabel,
+            total: created.total,
+            placedAt: created.placedAt,
+          },
+          roles,
+        );
       } catch (e) {
         // non-fatal: do not block order creation on socket errors
         console.warn('Failed to emit order:created', e);
@@ -197,12 +262,17 @@ export class OrdersService {
           }
         }
         try {
-          this.socketService.emit('order:created', {
-            orderId: String(created._id),
-            tableLabel: created.tableLabel,
-            total: created.total,
-            placedAt: created.placedAt,
-          });
+          const roles = ['KITCHEN', 'SUPERVISOR', 'ADMIN'];
+          this.notifyOrderEvent(
+            created,
+            'order:created',
+            {
+              tableLabel: created.tableLabel,
+              total: created.total,
+              placedAt: created.placedAt,
+            },
+            roles,
+          );
         } catch (e) {
           console.warn('Failed to emit order:created', e);
         }
@@ -277,6 +347,7 @@ export class OrdersService {
     // status rules (do not allow adding to cancelled/completed orders).
     const doc = await this.orderModel.findById(id).exec();
     if (!doc) throw new NotFoundException('Order not found');
+    const oldOrderStatus = doc.status;
 
     // Small helpers to normalize incoming shapes (clients may send `qty`/`note` or `quantity`/`notes`)
     const getQty = (x: any) => x?.quantity ?? x?.qty ?? 1;
@@ -395,12 +466,23 @@ export class OrdersService {
 
     await doc.save();
     try {
-      this.socketService.emit('order:updated', {
-        orderId: String(doc._id),
-        status: doc.status,
-        tableLabel: doc.tableLabel,
-        total: doc.total,
-      });
+      // If status changed, emit a specific status.changed event
+      if (typeof updateDto.status !== 'undefined' && oldOrderStatus !== doc.status) {
+        this.notifyOrderEvent(
+          doc,
+          'order:status.changed',
+          { oldStatus: oldOrderStatus, newStatus: doc.status },
+          this.rolesForOrderStatus(doc.status),
+        );
+      }
+
+      // Emit a general update to interested roles/rooms
+      this.notifyOrderEvent(
+        doc,
+        'order:updated',
+        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total },
+        this.rolesForOrderStatus(doc.status),
+      );
     } catch (e) {
       console.warn('Failed to emit order:updated', e);
     }
@@ -410,11 +492,19 @@ export class OrdersService {
   async updateItem(orderId: string, itemId: string, dto: UpdateItemStatusDto) {
     const doc = await this.orderModel.findById(orderId).exec();
     if (!doc) throw new NotFoundException('Order not found');
-
+    const oldOrderStatus = doc.status;
     let found = false;
+    let oldItemStatus: any = undefined;
+    let oldAssignedTo: any = undefined;
     for (const person of doc.people || []) {
       for (const it of person.orders || []) {
         if (String((it as any)._id) === String(itemId)) {
+          // capture previous values
+          oldItemStatus = (it as any).status;
+          oldAssignedTo = (it as any).assignedTo
+            ? String((it as any).assignedTo)
+            : undefined;
+
           if (dto.status) (it as any).status = dto.status;
           if (dto.assignedTo)
             (it as any).assignedTo = new Types.ObjectId(dto.assignedTo);
@@ -441,12 +531,48 @@ export class OrdersService {
 
     await doc.save();
     try {
-      this.socketService.emit('order:updated', {
-        orderId: String(doc._id),
-        status: doc.status,
-        tableLabel: doc.tableLabel,
-        total: doc.total,
-      });
+      // If item status changed, notify item-specific rooms/roles and assigned user
+      if (dto.status && String(oldItemStatus) !== String(dto.status)) {
+        // roles for this item status
+        const roles = this.rolesForItemStatus(dto.status as any);
+        this.notifyOrderEvent(
+          doc,
+          'order:item:status.changed',
+          { itemId, oldStatus: oldItemStatus, newStatus: dto.status, assignedTo: dto.assignedTo },
+          roles,
+        );
+
+        // notify assigned user directly if present
+        if (dto.assignedTo) {
+          try {
+            this.socketService.emitToUser(dto.assignedTo, 'order:item:assigned', {
+              orderId: String(doc._id),
+              itemId,
+              assignedTo: dto.assignedTo,
+            });
+          } catch (e) {
+            console.warn('Failed to emit order:item:assigned', e);
+          }
+        }
+      }
+
+      // If overall order status changed (e.g., moved to PREPARING), notify status change
+      if (oldOrderStatus !== doc.status) {
+        this.notifyOrderEvent(
+          doc,
+          'order:status.changed',
+          { oldStatus: oldOrderStatus, newStatus: doc.status },
+          this.rolesForOrderStatus(doc.status),
+        );
+      }
+
+      // Emit a general order update
+      this.notifyOrderEvent(
+        doc,
+        'order:updated',
+        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total },
+        this.rolesForOrderStatus(doc.status),
+      );
     } catch (e) {
       console.warn('Failed to emit order:updated', e);
     }
@@ -489,12 +615,21 @@ export class OrdersService {
 
     await doc.save();
     try {
-      this.socketService.emit('order:updated', {
-        orderId: String(doc._id),
-        status: doc.status,
-        tableLabel: doc.tableLabel,
-        total: doc.total,
-      });
+      // notify item removed
+      this.notifyOrderEvent(
+        doc,
+        'order:item:removed',
+        { itemId },
+        ['SUPERVISOR', 'KITCHEN', 'WAITER'],
+      );
+
+      // Emit a general order update
+      this.notifyOrderEvent(
+        doc,
+        'order:updated',
+        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total },
+        this.rolesForOrderStatus(doc.status),
+      );
     } catch (e) {
       console.warn('Failed to emit order:updated', e);
     }
@@ -505,7 +640,7 @@ export class OrdersService {
     const oid = new Types.ObjectId(orderId);
     const order = await this.orderModel.findById(oid).exec();
     if (!order) throw new NotFoundException('Order not found');
-
+    const oldStatus = order.status;
     const stRaw = (order.status || '').toString().toLowerCase();
     const normalized: string =
       stRaw === 'canceled' ? OrderStatus.CANCELLED : stRaw;
@@ -528,12 +663,21 @@ export class OrdersService {
     }
 
     try {
-      this.socketService.emit('order:updated', {
-        orderId: String(order._id),
-        status: order.status,
-        tableLabel: order.tableLabel,
-        total: order.total,
-      });
+      // notify status change
+      this.notifyOrderEvent(
+        order,
+        'order:status.changed',
+        { oldStatus, newStatus: order.status },
+        this.rolesForOrderStatus(order.status),
+      );
+
+      // general update
+      this.notifyOrderEvent(
+        order,
+        'order:updated',
+        { status: order.status, tableLabel: order.tableLabel, total: order.total },
+        this.rolesForOrderStatus(order.status),
+      );
     } catch (e) {
       console.warn('Failed to emit order:updated', e);
     }

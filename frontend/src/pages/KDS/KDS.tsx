@@ -17,6 +17,7 @@ import type {
   AggregatedKDSItem,
   KDSGroup,
 } from "../../interfaces/Order.interface";
+import { useSocket } from "../../hooks/useSocket";
 
 export default function KDS() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -45,6 +46,28 @@ export default function KDS() {
     // const t = setInterval(fetchOrders, 8000);
     // return () => clearInterval(t);
   }, []);
+
+  // Socket subscriptions: refresh KDS when relevant order events arrive
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (_payload: any) => {
+      // lightweight: re-fetch list on any relevant event
+      fetchOrders();
+    };
+
+    socket.on('order:created', handler);
+    socket.on('order:item:status.changed', handler);
+    socket.on('order:status.changed', handler);
+    socket.on('order:updated', handler);
+
+    return () => {
+      socket.off('order:created', handler);
+      socket.off('order:item:status.changed', handler);
+      socket.off('order:status.changed', handler);
+      socket.off('order:updated', handler);
+    };
+  }, [socket]);
 
   useEffect(() => {
     const update = () => {
