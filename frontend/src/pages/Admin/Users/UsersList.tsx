@@ -5,6 +5,7 @@ import { User } from "../../../interfaces/User.interface";
 import Button from "../../../components/ui/button/Button";
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
+import { ROLE_LABELS } from "../../../constants/roles";
 
 // Using `User` from User.interface.ts
 
@@ -27,7 +28,7 @@ function RoleBadge({ role }: { role: string }) {
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}
     >
-      {role}
+      {ROLE_LABELS[role] ?? role}
     </span>
   );
 }
@@ -153,11 +154,11 @@ export default function UsersList() {
                 className="h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
               >
                 <option value="ALL">Todos los roles</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="SUPERVISOR">SUPERVISOR</option>
-                <option value="WAITER">WAITER</option>
-                <option value="KITCHEN">KITCHEN</option>
-                <option value="CASHIER">CASHIER</option>
+                <option value="ADMIN">{ROLE_LABELS["ADMIN"] ?? "ADMIN"}</option>
+                <option value="SUPERVISOR">{ROLE_LABELS["SUPERVISOR"] ?? "SUPERVISOR"}</option>
+                <option value="WAITER">{ROLE_LABELS["WAITER"] ?? "WAITER"}</option>
+                <option value="KITCHEN">{ROLE_LABELS["KITCHEN"] ?? "KITCHEN"}</option>
+                <option value="CASHIER">{ROLE_LABELS["CASHIER"] ?? "CASHIER"}</option>
               </select>
             </div>
           </div>

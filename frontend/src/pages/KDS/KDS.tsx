@@ -51,7 +51,7 @@ export default function KDS() {
   const { socket } = useSocket();
   useEffect(() => {
     if (!socket) return;
-    const handler = (_payload: any) => {
+    const handler = (_payload: unknown) => {
       // lightweight: re-fetch list on any relevant event
       fetchOrders();
     };

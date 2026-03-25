@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useSocket } from "../../hooks/useSocket";
+import { OrderSocketPayload } from '../../interfaces/socket';
 import POSList, { POSItem } from "../../components/caja/POSList";
 import POSSummary from "../../components/caja/POSSummary";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -168,12 +169,16 @@ export default function CajaDetails(): React.ReactElement {
         }
       } catch (e) {
         // ignore
+        console.log(e);
+        
       }
     })();
 
-    const handleAny = (payload: any) => {
+    const handleAny = (payload: OrderSocketPayload) => {
       if (!payload) return;
-      if (String(payload.orderId) !== String(id)) return;
+      const payloadOrderId = payload.orderId ?? payload['orderId'];
+      if (!payloadOrderId) return;
+      if (String(payloadOrderId) !== String(id)) return;
       // Refresh order data
       setRetryKey((k) => k + 1);
     };
@@ -187,12 +192,16 @@ export default function CajaDetails(): React.ReactElement {
         socket.off('order:item:status.changed', handleAny);
         socket.off('order:status.changed', handleAny);
         socket.off('order:updated', handleAny);
-      } catch (_) {}
+      } catch (e) {
+        console.log(e);
+      }
       if (joined) {
         try {
           if (leaveRooms) leaveRooms(rooms);
           else socket.emit('leave', { rooms });
-        } catch (_) {}
+        } catch (e) {
+          console.log(e);
+        }
       }
     };
   }, [socket, id, tableId, joinRooms, leaveRooms]);

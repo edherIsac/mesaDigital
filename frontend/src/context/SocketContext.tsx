@@ -1,13 +1,14 @@
 import { createContext, PropsWithChildren, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { API_BASE } from '../api/config';
+import { JoinResponse, SocketAnyPayload } from '../interfaces/socket';
 
 export type SocketContextValue = {
   socket?: Socket;
   connected: boolean;
   joinRooms?: (rooms?: string[]) => Promise<boolean>;
   leaveRooms?: (rooms?: string[]) => Promise<boolean>;
-  emit?: (event: string, payload?: any) => void;
+  emit?: (event: string, payload?: SocketAnyPayload) => void;
 };
 
 export const SocketContext = createContext<SocketContextValue>({ socket: undefined, connected: false });
@@ -20,7 +21,7 @@ export const SocketProvider = ({ children }: PropsWithChildren<unknown>) => {
     const base = (import.meta.env.VITE_SOCKET_URL ?? import.meta.env.VITE_API_URL ?? API_BASE ?? window.location.origin) as string;
 
     // Read current user from localStorage to include in socket auth for auto-join
-    let auth: Record<string, any> = {};
+    let auth: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem('user');
       if (raw) {
@@ -28,7 +29,7 @@ export const SocketProvider = ({ children }: PropsWithChildren<unknown>) => {
         if (u?.role) auth.role = u.role;
         if (u?.id) auth.userId = String(u.id);
       }
-    } catch (e) {
+    } catch (_) {
       // ignore parse errors
     }
 
@@ -56,16 +57,20 @@ export const SocketProvider = ({ children }: PropsWithChildren<unknown>) => {
     };
   }, []);
 
-  const joinRooms = async (rooms?: string[]) => {
+    const joinRooms = async (rooms?: string[]) => {
     if (!socket || !rooms || !rooms.length) return false;
     return new Promise<boolean>((resolve) => {
       try {
-        socket.emit('join', { rooms }, (res: any) => {
-          resolve(Boolean(res && res.ok));
+        socket.emit('join', { rooms }, (res: JoinResponse | unknown) => {
+          if (res && typeof res === 'object' && 'ok' in (res as JoinResponse)) {
+            resolve(Boolean((res as JoinResponse).ok));
+            return;
+          }
+          resolve(Boolean(res));
         });
-      } catch (e) {
-        resolve(false);
-      }
+      } catch (_) {
+          resolve(false);
+        }
     });
   };
 
@@ -73,19 +78,23 @@ export const SocketProvider = ({ children }: PropsWithChildren<unknown>) => {
     if (!socket || !rooms || !rooms.length) return false;
     return new Promise<boolean>((resolve) => {
       try {
-        socket.emit('leave', { rooms }, (res: any) => {
-          resolve(Boolean(res && res.ok));
+        socket.emit('leave', { rooms }, (res: JoinResponse | unknown) => {
+          if (res && typeof res === 'object' && 'ok' in (res as JoinResponse)) {
+            resolve(Boolean((res as JoinResponse).ok));
+            return;
+          }
+          resolve(Boolean(res));
         });
-      } catch (e) {
-        resolve(false);
-      }
+      } catch (_) {
+          resolve(false);
+        }
     });
   };
 
-  const emit = (event: string, payload?: any) => {
+  const emit = (event: string, payload?: SocketAnyPayload) => {
     try {
       socket?.emit(event, payload);
-    } catch (e) {
+    } catch (_) {
       // ignore
     }
   };

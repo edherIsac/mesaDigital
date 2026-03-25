@@ -378,12 +378,12 @@ export default function StartOrder() {
           socket.emit('join', { rooms });
           joined = true;
         }
-      } catch (e) {
+      } catch (_) {
         // ignore
       }
     })();
 
-    const handle = async (payload: any) => {
+    const handle = async (_payload: unknown) => {
       try {
         const order = (await OrderService.getOrder(mid)) as Order | null;
         if (!order) return;
@@ -407,7 +407,7 @@ export default function StartOrder() {
           }
         }
         setPeople(mappedPeople);
-      } catch (e) {
+      } catch (_) {
         // ignore
       }
     };

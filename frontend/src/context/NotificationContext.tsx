@@ -6,7 +6,7 @@ export type Notification = {
   type?: 'info' | 'success' | 'warning' | 'error' | 'order';
   title: string;
   message?: string;
-  data?: any;
+  data?: unknown;
   read?: boolean;
   createdAt: number;
 };
@@ -62,14 +62,16 @@ export const NotificationProvider = ({ children }: PropsWithChildren<unknown>) =
   useEffect(() => {
     if (!socket) return;
 
-    const onNotification = (payload: any) => {
+    const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object';
+
+    const onNotification = (payload: unknown) => {
       try {
         // Normalize common shapes
         if (Array.isArray(payload)) {
-          payload.forEach((p) => addNotification(p));
+          (payload as unknown[]).forEach((p) => addNotification((p as Partial<Notification>)));
           return;
         }
-        if (payload && typeof payload === 'object') {
+        if (isObject(payload)) {
           addNotification(payload as Partial<Notification>);
           return;
         }
@@ -81,16 +83,17 @@ export const NotificationProvider = ({ children }: PropsWithChildren<unknown>) =
       }
     };
 
-    const onOrderUpdate = (payload: any) => {
-      // Allow backend to emit order-specific events that we convert to notifications
-      const title = payload?.title ?? `Pedido ${payload?.orderId ?? ''} actualizado`;
-      const message = payload?.message ?? payload?.status ?? undefined;
+    const onOrderUpdate = (payload: unknown) => {
+      const obj = isObject(payload) ? payload as Record<string, unknown> : {};
+      const title = (obj.title as string | undefined) ?? `Pedido ${(obj.orderId as string | undefined) ?? ''} actualizado`;
+      const message = (obj.message as string | undefined) ?? (obj.status as string | undefined) ?? undefined;
       addNotification({ type: 'order', title, message, data: payload });
     };
 
-    const onOrderCreate = (payload: any) => {
-      const title = payload?.title ?? `Nuevo pedido ${payload?.orderId ?? ''}`;
-      const message = payload?.message ?? `Total: ${payload?.total ?? ''}`;
+    const onOrderCreate = (payload: unknown) => {
+      const obj = isObject(payload) ? payload as Record<string, unknown> : {};
+      const title = (obj.title as string | undefined) ?? `Nuevo pedido ${(obj.orderId as string | undefined) ?? ''}`;
+      const message = (obj.message as string | undefined) ?? `Total: ${(obj.total as string | number | undefined) ?? ''}`;
       addNotification({ type: 'order', title, message, data: payload });
     };
 

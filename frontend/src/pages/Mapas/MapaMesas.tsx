@@ -80,7 +80,7 @@ export default function MapaMesas() {
   const { socket } = useSocket();
   useEffect(() => {
     if (!socket) return;
-    const handler = (_payload: any) => {
+    const handler = (_payload: unknown) => {
       // Re-run the load effect by forcing a reload
       // Simple approach: call MesaService.fetchMesas + enrich again
       (async () => {

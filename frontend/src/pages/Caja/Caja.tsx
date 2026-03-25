@@ -70,7 +70,7 @@ export default function Caja() {
   // Socket subscriptions: refresh caja list when relevant events arrive
   useEffect(() => {
     if (!socket) return;
-    const handler = (_payload: any) => {
+    const handler = (_payload: unknown) => {
       setRefreshKey((k) => k + 1);
     };
 

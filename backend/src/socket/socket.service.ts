@@ -18,19 +18,19 @@ export class SocketService {
     return this.server;
   }
 
-  emit(event: string, payload: any) {
+  emit(event: string, payload: unknown) {
     this.getServer().emit(event, payload);
   }
 
-  emitToRoom(room: string, event: string, payload: any) {
+  emitToRoom(room: string, event: string, payload: unknown) {
     try {
       this.getServer().to(room).emit(event, payload);
     } catch (e) {
-      this.logger.warn(`Failed emit to room ${room} - ${event}`, e as any);
+      this.logger.warn(`Failed emit to room ${room} - ${event}: ${String(e)}`);
     }
   }
 
-  emitToRooms(event: string, payload: any, rooms?: string[]) {
+  emitToRooms(event: string, payload: unknown, rooms?: string[]) {
     try {
       if (!rooms || rooms.length === 0) {
         this.emit(event, payload);
@@ -40,20 +40,20 @@ export class SocketService {
         this.getServer().to(r).emit(event, payload);
       }
     } catch (e) {
-      this.logger.warn(`Failed emit to rooms ${rooms}`, e as any);
+      this.logger.warn(`Failed emit to rooms ${rooms}: ${String(e)}`);
     }
   }
 
-  emitToRoles(roles: string[], event: string, payload: any) {
+  emitToRoles(roles: string[], event: string, payload: unknown) {
     const rooms = (roles || []).map((r) => `role:${r}`);
     this.emitToRooms(event, payload, rooms);
   }
 
-  emitToUser(userId: string, event: string, payload: any) {
+  emitToUser(userId: string, event: string, payload: unknown) {
     try {
       this.getServer().to(`user:${userId}`).emit(event, payload);
     } catch (e) {
-      this.logger.warn(`Failed emit to user ${userId} - ${event}`, e as any);
+      this.logger.warn(`Failed emit to user ${userId} - ${event}: ${String(e)}`);
     }
   }
 }
