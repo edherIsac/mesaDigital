@@ -29,6 +29,8 @@ export default function CajaDetails(): JSX.Element {
   const initialTotal = +(initialSubtotal + initialTaxes).toFixed(2);
 
   const [items, setItems] = useState<POSItem[]>(MOCK_ITEMS);
+  const [groups, setGroups] = useState<{ personName?: string; seat?: number; items: POSItem[] }[] | null>(null);
+  const [tableLabel, setTableLabel] = useState<string | null>(null);
   const [subtotal, setSubtotal] = useState<number>(initialSubtotal);
   const [taxes, setTaxes] = useState<number>(initialTaxes);
   const [total, setTotal] = useState<number>(initialTotal);
@@ -67,13 +69,14 @@ export default function CajaDetails(): JSX.Element {
         const res = await client.get(`/orders/${id}`);
         const data = res.data ?? res;
 
-        const mapped: POSItem[] = [];
         const people = Array.isArray(data?.people) ? data.people : [];
+        const groupsArr: { personName?: string; items: POSItem[] }[] = [];
         for (const p of people) {
           const porders = Array.isArray(p.orders) ? p.orders : [];
+          const personItems: POSItem[] = [];
           for (const it of porders) {
             const menuItemId = it.menuItemId ? String(it.menuItemId) : undefined;
-            mapped.push({
+            personItems.push({
               id: String(it._id ?? it.id ?? Math.random().toString(36).slice(2)),
               name: it.name ?? 'Item',
               qty: it.quantity ?? it.qty ?? 1,
@@ -83,12 +86,15 @@ export default function CajaDetails(): JSX.Element {
               menuItemId,
             });
           }
+          groupsArr.push({ personName: p.name ?? undefined, seat: typeof p?.seat !== 'undefined' ? p.seat : undefined, items: personItems });
         }
 
         if (cancelled) return;
+          setTableLabel(data?.tableLabel ?? null);
 
         // If items reference products, try to fetch product cover images
-        const uniqueMenuIds = Array.from(new Set(mapped.map((m) => m.menuItemId).filter(Boolean))) as string[];
+        const allItems = groupsArr.flatMap((g) => g.items);
+        const uniqueMenuIds = Array.from(new Set(allItems.map((m) => m.menuItemId).filter(Boolean))) as string[];
         if (uniqueMenuIds.length) {
           try {
             const results = await Promise.allSettled(uniqueMenuIds.map((pid) => client.get(`/products/${pid}`)));
@@ -103,15 +109,18 @@ export default function CajaDetails(): JSX.Element {
               }
             });
 
-            mapped.forEach((m) => {
-              if (!m.image && m.menuItemId && coverMap[m.menuItemId]) m.image = coverMap[m.menuItemId] as string;
-            });
+            for (const g of groupsArr) {
+              for (const m of g.items) {
+                if (!m.image && m.menuItemId && coverMap[m.menuItemId]) m.image = coverMap[m.menuItemId] as string;
+              }
+            }
           } catch {
             // ignore image fetch errors
           }
         }
 
-        setItems(mapped.length ? mapped : MOCK_ITEMS);
+        setGroups(groupsArr.length ? groupsArr : null);
+          setItems(allItems.length ? allItems : MOCK_ITEMS);
 
         const newSubtotal = typeof data?.subtotal !== 'undefined' ? data.subtotal : mapped.reduce((s, it) => s + it.qty * it.unitPrice, 0);
         const newTaxes = typeof data?.tax !== 'undefined' ? data.tax : +(newSubtotal * 0.1).toFixed(2);
@@ -164,13 +173,16 @@ export default function CajaDetails(): JSX.Element {
               <div className="h-full flex flex-col min-h-0">
                 <div className="shrink-0 flex items-center justify-between pb-3 border-b border-gray-100 dark:border-white/[0.05]">
                   <div>
+                    {tableLabel && (
+                      <h1 className="text-xl font-bold text-gray-100 mb-1">{tableLabel}</h1>
+                    )}
                     <h3 className="text-lg font-semibold text-gray-100">Platillos</h3>
                     <div className="text-sm text-gray-400">Lista de productos a cobrar</div>
                   </div>
                 </div>
 
                 <div className="flex-1 min-h-0">
-                  <POSList items={items} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
+                  <POSList items={items} groups={groups ?? undefined} badgeVariant="solid" qtyBadgeColor="success" priceBadgeColor="warning" badgeSize="md" />
                 </div>
               </div>
             </ComponentCard>

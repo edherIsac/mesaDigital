@@ -30,6 +30,7 @@ type POSListProps = {
   badgeSize?: "sm" | "md";
   qtyBadgeColor?: BadgeColor;
   priceBadgeColor?: BadgeColor;
+  groups?: { personName?: string; seat?: number; items: POSItem[] }[];
 };
 
 export default function POSList({
@@ -39,9 +40,11 @@ export default function POSList({
   badgeSize = "sm",
   qtyBadgeColor,
   priceBadgeColor,
+  groups,
 }: POSListProps) {
   const qtyColor = qtyBadgeColor ?? badgeColor;
   const priceColor = priceBadgeColor ?? badgeColor;
+  const groupsToRender = groups && groups.length ? groups : [{ personName: undefined, items }];
   return (
     <div className="rounded-lg bg-transparent shadow-sm overflow-auto h-full min-h-0">
       <table className="w-full min-w-full table-fixed divide-y divide-gray-700">
@@ -54,40 +57,52 @@ export default function POSList({
           </tr>
         </thead>
         <tbody className="bg-transparent divide-y divide-gray-800">
-          {items.map((item) => (
-            <tr key={item.id} className="hover:bg-white/5 transition-colors">
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center overflow-hidden shrink-0">
-                    {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="text-sm font-medium text-gray-300">
-                        {item.name
-                          .split(" ")
-                          .map((s) => s[0])
-                          .slice(0, 2)
-                          .join("")}
+          {groupsToRender.map((group, gi) => (
+            <React.Fragment key={`group-${gi}`}>
+              {group.personName && (
+                <tr className="bg-transparent">
+                  <td colSpan={4} className="px-4 py-2">
+                    <Badge variant="light" color="error" size="sm">{group.personName}{group.seat ? ` (Seat ${group.seat})` : ''}</Badge>
+                  </td>
+                </tr>
+              )}
+
+              {group.items.map((item) => (
+                <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center overflow-hidden shrink-0">
+                        {item.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-sm font-medium text-gray-300">
+                            {item.name
+                              .split(" ")
+                              .map((s) => s[0])
+                              .slice(0, 2)
+                              .join("")}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-100 truncate">{item.name}</div>
-                    {item.notes && <div className="text-xs text-gray-400 truncate">{item.notes}</div>}
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-200">
-                <Badge variant={badgeVariant} color={qtyColor} size={badgeSize}>{'X' + item.qty}</Badge>
-              </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-200">
-                <Badge variant={badgeVariant} color={priceColor} size={badgeSize}>{formatCurrency(item.unitPrice)}</Badge>
-              </td>
-              <td className="px-4 py-3 text-center text-sm font-medium text-gray-100">
-                {formatCurrency(item.qty * item.unitPrice)}
-              </td>
-            </tr>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-100 truncate">{item.name}</div>
+                        {item.notes && <div className="text-xs text-gray-400 truncate">{item.notes}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-200">
+                    <Badge variant={badgeVariant} color={qtyColor} size={badgeSize}>{'X' + item.qty}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-200">
+                    <Badge variant={badgeVariant} color={priceColor} size={badgeSize}>{formatCurrency(item.unitPrice)}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm font-medium text-gray-100">
+                    {formatCurrency(item.qty * item.unitPrice)}
+                  </td>
+                </tr>
+              ))}
+            </React.Fragment>
           ))}
         </tbody>
       </table>
