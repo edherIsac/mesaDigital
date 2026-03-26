@@ -116,7 +116,7 @@ export class Order {
   @Prop({ default: 0 })
   total: number;
 
-  @Prop({ default: 'USD' })
+  @Prop({ default: 'MXN' })
   currency: string;
 
   @Prop()

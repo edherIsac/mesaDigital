@@ -4,6 +4,7 @@ import { Product } from "../../interfaces/Product.interface";
 import { Modal } from "../ui/modal";
 import { Category, CATEGORY_LABELS, CATEGORY_GROUPS } from "../../constants/categories";
 import { Allergen, ALLERGEN_LABELS } from "../../constants/allergens";
+import { formatCurrency } from '../../utils/currency';
 
 interface Props {
   isOpen: boolean;
@@ -79,7 +80,7 @@ function ProductCard({ product, selected, onToggle }: {
         {/* Precio flotante */}
         <div className="absolute bottom-2 right-2">
           <span className="rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-            ${(product.price ?? 0).toFixed(2)}
+            {formatCurrency(product.price ?? 0)}
           </span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatCurrency } from '../../utils/currency';
 
 export type OrderStatus = 'pending' | 'urgent' | 'ready';
 
@@ -16,8 +17,7 @@ interface Props {
   onClick?: (id: string) => void;
 }
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v);
+
 
 const timeAgoShort = (when?: string | number | Date) => {
   if (!when) return '';

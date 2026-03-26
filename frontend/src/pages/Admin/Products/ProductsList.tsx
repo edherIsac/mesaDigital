@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import ProductService from "./Product.service";
 import { Product } from "../../../interfaces/Product.interface";
 import Button from "../../../components/ui/button/Button";
+import { formatCurrency } from '../../../utils/currency';
 import Input from "../../../components/form/input/InputField";
 import Label from "../../../components/form/Label";
 import { Category, CATEGORY_LABELS } from "../../../constants/categories";
@@ -265,7 +266,7 @@ export default function ProductsList() {
                       )}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                      ${p.price.toFixed(2)}
+                      {formatCurrency(p.price ?? 0)}
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       {p.menuOrder ?? 0}

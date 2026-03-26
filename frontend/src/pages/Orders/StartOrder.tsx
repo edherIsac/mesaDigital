@@ -18,6 +18,7 @@ import OrderService from "./Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import { CreateOrderDto } from "./Order.service";
 import { useSocket } from '../../hooks/useSocket';
+import { formatCurrency, DEFAULT_CURRENCY } from '../../utils/currency';
 
 // Usamos las interfaces centralizadas para las respuestas del backend
 // Order creation handled elsewhere; page shows header info only for now
@@ -552,10 +553,17 @@ export default function StartOrder() {
   const orderStatusLabel = (s?: string) => {
     const st = normalizeStatus(s);
     if (st === OrderStatus.PENDING) return 'Pendiente';
+    if (st === OrderStatus.ACCEPTED) return 'Aceptada';
     if (st === OrderStatus.PREPARING) return 'En preparación';
+    if (st === OrderStatus.ON_HOLD) return 'En espera';
     if (st === OrderStatus.READY) return 'Lista';
-    if (st === OrderStatus.COMPLETED || st === 'done') return 'Completada';
+    if (st === OrderStatus.PACKAGED) return 'Empaquetada';
+    if (st === OrderStatus.AWAITING_PAYMENT) return 'Pendiente de pago';
+    if (st === OrderStatus.PAID) return 'Pagada';
+    if (st === OrderStatus.DELIVERED) return 'Entregada';
+    if (st === OrderStatus.SERVED) return 'Servida';
     if (st === OrderStatus.CANCELLED) return 'Cancelada';
+    if (st === OrderStatus.COMPLETED || st === 'done') return 'Completada';
     return st.charAt(0).toUpperCase() + st.slice(1);
   };
 
@@ -575,7 +583,7 @@ export default function StartOrder() {
     table: mesa,
     people,
     totals: computeTotals(people),
-    currency: "$",
+    currency: DEFAULT_CURRENCY,
     status: orderStatus ?? "draft",
   };
 
@@ -692,9 +700,14 @@ export default function StartOrder() {
       await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.AWAITING_PAYMENT);
       setOrderStatus(OrderStatus.AWAITING_PAYMENT);
       alert.success("Comanda enviada a caja — pendiente de pago");
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to send comanda to caja', err);
-      alert.error('No se pudo enviar a caja');
+      const msg =
+        err && typeof err === 'object'
+          ? (err.message ||
+              (Array.isArray(err) ? err.join(', ') : err.error || String(err.statusCode || JSON.stringify(err))))
+          : String(err);
+      alert.error(msg || 'No se pudo enviar a caja');
     } finally {
       setCompleting(false);
     }
@@ -871,7 +884,7 @@ export default function StartOrder() {
                             {person.orders.length} {person.orders.length === 1 ? "platillo" : "platillos"}
                           </span>
                           <span className="w-16 shrink-0 text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                            ${personTotal.toFixed(2)}
+                            {formatCurrency(personTotal, comanda.currency ?? DEFAULT_CURRENCY)}
                           </span>
                           <ChevronDownIcon
                             className={`w-4 h-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180 text-brand-500" : ""}`}
@@ -981,10 +994,10 @@ export default function StartOrder() {
                                   {o.note || "—"}
                                 </div>
                                 <div className="text-right text-sm text-gray-700 dark:text-gray-200">
-                                  {`$${((o.unitPrice ?? 0)).toFixed(2)}`}
+                                  {formatCurrency(o.unitPrice ?? 0, comanda.currency ?? DEFAULT_CURRENCY)}
                                 </div>
                                 <div className="text-right text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                  {`$${(((o.unitPrice ?? 0) * (o.qty ?? 1))).toFixed(2)}`}
+                                  {formatCurrency(((o.unitPrice ?? 0) * (o.qty ?? 1)), comanda.currency ?? DEFAULT_CURRENCY)}
                                 </div>
 
                                 <div className="flex items-center justify-end gap-2">
@@ -1041,7 +1054,7 @@ export default function StartOrder() {
               <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div>
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
-                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{`$${comanda.totals.total.toFixed(2)}`}</div>
+                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{formatCurrency(comanda.totals.total, comanda.currency ?? DEFAULT_CURRENCY)}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -1216,8 +1229,8 @@ export default function StartOrder() {
                           </div>
                           <div className="shrink-0 text-right">
                             <div className="text-base font-bold text-gray-800 dark:text-white/90">
-                              ${(it.product.price ?? 0).toFixed(2)}
-                            </div>
+                                {formatCurrency(it.product.price ?? 0, comanda.currency ?? DEFAULT_CURRENCY)}
+                              </div>
                             <div className="text-[11px] text-gray-400 dark:text-gray-500">por unidad</div>
                           </div>
                         </div>
@@ -1250,7 +1263,7 @@ export default function StartOrder() {
                                 +
                               </button>
                               <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
-                                = ${((it.product.price ?? 0) * it.qty).toFixed(2)}
+                                = {formatCurrency(((it.product.price ?? 0) * it.qty), comanda.currency ?? DEFAULT_CURRENCY)}
                               </span>
                             </div>
                           </div>
@@ -1313,8 +1326,8 @@ export default function StartOrder() {
                       </span>{" "}
                       ítem{pendingSelection.reduce((s, it) => s + it.qty, 0) !== 1 ? "s" : ""}
                       {" · "}
-                      <span className="font-semibold text-gray-800 dark:text-white/90">
-                        ${pendingSelection.reduce((s, it) => s + (it.product.price ?? 0) * it.qty, 0).toFixed(2)}
+                        <span className="font-semibold text-gray-800 dark:text-white/90">
+                        {formatCurrency(pendingSelection.reduce((s, it) => s + (it.product.price ?? 0) * it.qty, 0), comanda.currency ?? DEFAULT_CURRENCY)}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">

@@ -536,9 +536,17 @@ export class OrdersService {
     await doc.save();
 
     // If the order was marked as PAID, free the table (archive) so FOH shows it as available
-    if (typeof updateDto.status !== 'undefined' && doc.status === OrderStatus.PAID && doc.tableId) {
+    if (
+      typeof updateDto.status !== 'undefined' &&
+      doc.status === OrderStatus.PAID &&
+      doc.tableId
+    ) {
       try {
-        await this.tableModel.findByIdAndUpdate(doc.tableId, { $set: { currentOrderId: null, status: 'available' } }).exec();
+        await this.tableModel
+          .findByIdAndUpdate(doc.tableId, {
+            $set: { currentOrderId: null, status: 'available' },
+          })
+          .exec();
       } catch (e) {
         console.warn('Failed to update table when marking order as paid', e);
       }
