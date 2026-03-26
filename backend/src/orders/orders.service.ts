@@ -9,6 +9,47 @@ import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { OrderStatus } from './order-status.enum';
 import { SocketService } from '../socket/socket.service';
 
+// Strongly-typed local interfaces to avoid excessive `any` casts in this service
+interface OrderItemDoc {
+  _id?: any;
+  menuItemId?: Types.ObjectId | string;
+  name: string;
+  quantity?: number;
+  unitPrice?: number;
+  modifiers?: any[];
+  notes?: string;
+  status?: string;
+  stationId?: Types.ObjectId | string;
+  prepTimeEstimate?: number;
+  startedAt?: Date;
+  preparedAt?: Date;
+  completedAt?: Date;
+  assignedTo?: Types.ObjectId | string;
+  priority?: number;
+  sequence?: number;
+}
+
+interface OrderPerson {
+  id?: string;
+  name: string;
+  orders: OrderItemDoc[];
+  seat?: number;
+}
+
+interface ItemSnapshot {
+  itemId: string;
+  name?: string;
+  menuItemId?: string;
+  quantity?: number;
+  unitPrice?: number;
+  modifiers?: any[];
+  personId?: string;
+  personName?: string;
+  seat?: number;
+  assignedTo?: string | undefined;
+  newStatus?: string;
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -467,8 +508,7 @@ export class OrdersService {
     }
 
     // Apply other scalar updates (status, notes, total)
-    if (typeof updateDto.status !== 'undefined')
-      doc.status = updateDto.status as any;
+    if (typeof updateDto.status !== 'undefined') doc.status = updateDto.status;
     if (typeof updateDto.notes !== 'undefined') doc.notes = updateDto.notes;
 
     // Recalculate subtotal/total if people were modified or client did not provide explicit total
@@ -479,7 +519,7 @@ export class OrdersService {
       doc.subtotal = subtotal;
       doc.total = subtotal + (doc.tax || 0);
     } else if (typeof updateDto.total !== 'undefined') {
-      doc.total = updateDto.total as any;
+      doc.total = updateDto.total;
     }
 
     await doc.save();
@@ -530,36 +570,40 @@ export class OrdersService {
     if (!doc) throw new NotFoundException('Order not found');
     const oldOrderStatus = doc.status;
     let found = false;
-    let oldItemStatus: any = undefined;
-    let itemSnapshot: Record<string, any> | undefined = undefined;
-    for (const person of doc.people || []) {
-      for (const it of person.orders || []) {
-        if (String((it as any)._id) === String(itemId)) {
+    let oldItemStatus: string | undefined = undefined;
+    let itemSnapshot: ItemSnapshot | undefined = undefined;
+
+    const people = (doc.people || []) as OrderPerson[];
+    for (const person of people) {
+      const orders: OrderItemDoc[] = person.orders || [];
+      for (const orderItem of orders) {
+        if (String(orderItem._id) === String(itemId)) {
           // capture previous values
-          oldItemStatus = (it as any).status;
+          oldItemStatus = orderItem.status;
 
           // apply updates
-          if (dto.status) (it as any).status = dto.status;
+          if (dto.status) orderItem.status = dto.status;
           if (dto.assignedTo)
-            (it as any).assignedTo = new Types.ObjectId(dto.assignedTo);
-          if (dto.notes) (it as any).notes = dto.notes;
+            orderItem.assignedTo = new Types.ObjectId(dto.assignedTo);
+          if (dto.notes) orderItem.notes = dto.notes;
 
           // snapshot useful fields to include in notifications
           itemSnapshot = {
             itemId,
-            name: (it as any).name,
-            menuItemId: (it as any).menuItemId
-              ? String((it as any).menuItemId)
+            name: orderItem.name,
+            menuItemId: orderItem.menuItemId
+              ? String(orderItem.menuItemId)
               : undefined,
-            quantity: (it as any).quantity,
-            unitPrice: (it as any).unitPrice,
-            modifiers: (it as any).modifiers,
-            personId: (person as any).id,
-            personName: (person as any).name,
-            seat: (person as any).seat,
+            quantity: orderItem.quantity,
+            unitPrice: orderItem.unitPrice,
+            modifiers: orderItem.modifiers,
+            personId: person.id,
+            personName: person.name,
+            seat: person.seat,
             assignedTo:
-              dto.assignedTo ?? ((it as any).assignedTo ? String((it as any).assignedTo) : undefined),
-            newStatus: dto.status ?? (it as any).status,
+              dto.assignedTo ??
+              (orderItem.assignedTo ? String(orderItem.assignedTo) : undefined),
+            newStatus: dto.status ?? orderItem.status,
           };
 
           found = true;
@@ -578,7 +622,7 @@ export class OrdersService {
         current !== OrderStatus.CANCELLED &&
         current !== OrderStatus.COMPLETED
       ) {
-        doc.status = OrderStatus.PREPARING as any;
+        doc.status = OrderStatus.PREPARING;
       }
     }
 
@@ -587,7 +631,7 @@ export class OrdersService {
       // If item status changed, notify item-specific rooms/roles and assigned user
       if (dto.status && String(oldItemStatus) !== String(dto.status)) {
         // roles for this item status
-        const roles = this.rolesForItemStatus(dto.status as any);
+        const roles = this.rolesForItemStatus(dto.status);
         const payloadForItemEvent: Record<string, any> = {
           itemId,
           oldStatus: oldItemStatus,
@@ -597,17 +641,26 @@ export class OrdersService {
           ...(itemSnapshot ? { item: itemSnapshot } : {}),
         };
 
-        this.notifyOrderEvent(doc, 'order:item:status.changed', payloadForItemEvent, roles);
+        this.notifyOrderEvent(
+          doc,
+          'order:item:status.changed',
+          payloadForItemEvent,
+          roles,
+        );
 
         // notify assigned user directly if present (include contextual details)
         if (dto.assignedTo) {
           try {
-            this.socketService.emitToUser(dto.assignedTo, 'order:item:assigned', {
-              orderId: String(doc._id),
-              itemId,
-              assignedTo: dto.assignedTo,
-              ...(itemSnapshot ? { item: itemSnapshot } : {}),
-            });
+            this.socketService.emitToUser(
+              dto.assignedTo,
+              'order:item:assigned',
+              {
+                orderId: String(doc._id),
+                itemId,
+                assignedTo: dto.assignedTo,
+                ...(itemSnapshot ? { item: itemSnapshot } : {}),
+              },
+            );
           } catch (e) {
             console.warn('Failed to emit order:item:assigned', e);
           }
