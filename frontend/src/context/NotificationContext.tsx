@@ -117,14 +117,35 @@ export const NotificationProvider = ({ children }: PropsWithChildren<unknown>) =
       addNotification({ type: 'order', title, message, data: payload });
     };
 
+    const onItemStatus = (payload: unknown) => {
+      try {
+        const obj = isObject(payload) ? payload as Record<string, unknown> : {};
+        const tableLabel = obj.tableLabel as string | undefined;
+        const item = obj.item as Record<string, any> | undefined;
+        const itemName = item?.name as string | undefined;
+        const personName = item?.personName as string | undefined;
+        const parts: string[] = [];
+        if (tableLabel) parts.push(`Mesa: ${tableLabel}`);
+        if (personName) parts.push(`Para: ${personName}`);
+        if (itemName) parts.push(`Platillo: ${itemName}`);
+        const message = parts.length ? parts.join(' — ') : (obj.message as string | undefined) ?? String(obj.orderId ?? obj.newStatus ?? '');
+        const title = itemName ? `${itemName} — ${(obj.newStatus as string | undefined) ?? (obj.newStatus as string) ?? 'actualizado'}` : `Pedido ${(obj.orderId as string | undefined) ?? ''} actualizado`;
+        addNotification({ type: 'order', title, message, data: payload });
+      } catch (e) {
+        // ignore malformed payload
+      }
+    };
+
     socket.on('notification', onNotification);
     socket.on('order:updated', onOrderUpdate);
     socket.on('order:created', onOrderCreate);
+    socket.on('order:item:status.changed', onItemStatus);
 
     return () => {
       socket.off('notification', onNotification);
       socket.off('order:updated', onOrderUpdate);
       socket.off('order:created', onOrderCreate);
+      socket.off('order:item:status.changed', onItemStatus);
     };
   }, [socket]);
 

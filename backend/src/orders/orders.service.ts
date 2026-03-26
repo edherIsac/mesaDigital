@@ -66,7 +66,8 @@ export class OrdersService {
     try {
       const orderId = String(order._id ?? order.id ?? '');
       const tableId = order.tableId ? String(order.tableId) : undefined;
-      const base = { orderId, tableId, ...payload };
+      const tableLabel = (order.tableLabel as string) ?? undefined;
+      const base = { orderId, tableId, tableLabel, ...payload };
 
       // Compose rooms: specific order/table + role rooms
       const roleRooms = (extraRoles || []).map((r) => `role:${r}`);
@@ -530,16 +531,37 @@ export class OrdersService {
     const oldOrderStatus = doc.status;
     let found = false;
     let oldItemStatus: any = undefined;
+    let itemSnapshot: Record<string, any> | undefined = undefined;
     for (const person of doc.people || []) {
       for (const it of person.orders || []) {
         if (String((it as any)._id) === String(itemId)) {
           // capture previous values
           oldItemStatus = (it as any).status;
 
+          // apply updates
           if (dto.status) (it as any).status = dto.status;
           if (dto.assignedTo)
             (it as any).assignedTo = new Types.ObjectId(dto.assignedTo);
           if (dto.notes) (it as any).notes = dto.notes;
+
+          // snapshot useful fields to include in notifications
+          itemSnapshot = {
+            itemId,
+            name: (it as any).name,
+            menuItemId: (it as any).menuItemId
+              ? String((it as any).menuItemId)
+              : undefined,
+            quantity: (it as any).quantity,
+            unitPrice: (it as any).unitPrice,
+            modifiers: (it as any).modifiers,
+            personId: (person as any).id,
+            personName: (person as any).name,
+            seat: (person as any).seat,
+            assignedTo:
+              dto.assignedTo ?? ((it as any).assignedTo ? String((it as any).assignedTo) : undefined),
+            newStatus: dto.status ?? (it as any).status,
+          };
+
           found = true;
           break;
         }
@@ -566,30 +588,26 @@ export class OrdersService {
       if (dto.status && String(oldItemStatus) !== String(dto.status)) {
         // roles for this item status
         const roles = this.rolesForItemStatus(dto.status as any);
-        this.notifyOrderEvent(
-          doc,
-          'order:item:status.changed',
-          {
-            itemId,
-            oldStatus: oldItemStatus,
-            newStatus: dto.status,
-            assignedTo: dto.assignedTo,
-          },
-          roles,
-        );
+        const payloadForItemEvent: Record<string, any> = {
+          itemId,
+          oldStatus: oldItemStatus,
+          newStatus: dto.status,
+          assignedTo: dto.assignedTo,
+          // include snapshot details if available
+          ...(itemSnapshot ? { item: itemSnapshot } : {}),
+        };
 
-        // notify assigned user directly if present
+        this.notifyOrderEvent(doc, 'order:item:status.changed', payloadForItemEvent, roles);
+
+        // notify assigned user directly if present (include contextual details)
         if (dto.assignedTo) {
           try {
-            this.socketService.emitToUser(
-              dto.assignedTo,
-              'order:item:assigned',
-              {
-                orderId: String(doc._id),
-                itemId,
-                assignedTo: dto.assignedTo,
-              },
-            );
+            this.socketService.emitToUser(dto.assignedTo, 'order:item:assigned', {
+              orderId: String(doc._id),
+              itemId,
+              assignedTo: dto.assignedTo,
+              ...(itemSnapshot ? { item: itemSnapshot } : {}),
+            });
           } catch (e) {
             console.warn('Failed to emit order:item:assigned', e);
           }
