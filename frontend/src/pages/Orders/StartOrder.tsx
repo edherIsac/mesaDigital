@@ -689,9 +689,9 @@ export default function StartOrder() {
 
     setCompleting(true);
     try {
-      await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.COMPLETED);
-      setOrderStatus(OrderStatus.COMPLETED);
-      alert.success("Comanda enviada a caja");
+      await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.AWAITING_PAYMENT);
+      setOrderStatus(OrderStatus.AWAITING_PAYMENT);
+      alert.success("Comanda enviada a caja — pendiente de pago");
     } catch (err) {
       console.error('Failed to send comanda to caja', err);
       alert.error('No se pudo enviar a caja');

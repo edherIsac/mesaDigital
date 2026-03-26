@@ -5,6 +5,8 @@ export enum OrderStatus {
   ON_HOLD = 'on_hold',
   READY = 'ready',
   PACKAGED = 'packaged',
+  AWAITING_PAYMENT = 'awaiting_payment',
+  PAID = 'paid',
   DELIVERED = 'delivered',
   SERVED = 'served',
   CANCELLED = 'cancelled',

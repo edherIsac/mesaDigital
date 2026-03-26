@@ -72,10 +72,14 @@ export class OrdersService {
       case String(OrderStatus.SERVED):
       case String(OrderStatus.DELIVERED):
         return ['SUPERVISOR', 'ADMIN'];
-      case String(OrderStatus.CANCELLED):
-        return ['SUPERVISOR', 'ADMIN', 'WAITER'];
+      case String(OrderStatus.AWAITING_PAYMENT):
+        // Notify cashiers/front-of-house that order awaits payment
+        return ['CASHIER', 'WAITER', 'SUPERVISOR'];
+      case String(OrderStatus.PAID):
       case String(OrderStatus.COMPLETED):
         return ['ADMIN', 'SUPERVISOR', 'CASHIER'];
+      case String(OrderStatus.CANCELLED):
+        return ['SUPERVISOR', 'ADMIN', 'WAITER'];
       default:
         return ['SUPERVISOR', 'KITCHEN', 'ADMIN'];
     }
@@ -346,8 +350,8 @@ export class OrdersService {
     const filter: any = {};
     if (query.locationId)
       filter.locationId = new Types.ObjectId(query.locationId);
-    // Exclude cancelled and completed (paid) orders
-    filter.status = { $nin: [OrderStatus.CANCELLED, OrderStatus.COMPLETED] };
+    // Exclude cancelled and paid orders from KDS
+    filter.status = { $nin: [OrderStatus.CANCELLED, OrderStatus.PAID] };
 
     // Fetch candidates then filter out orders where ALL items are READY (or no items at all).
     // This ensures KDS shows only orders that have at least one item not yet ready.
@@ -419,9 +423,10 @@ export class OrdersService {
     const rawStatus = doc.status;
     if (
       rawStatus === OrderStatus.CANCELLED ||
-      rawStatus === OrderStatus.COMPLETED
+      rawStatus === OrderStatus.COMPLETED ||
+      rawStatus === OrderStatus.PAID
     ) {
-      // Client should not be able to modify cancelled/completed orders
+      // Client should not be able to modify cancelled/completed/paid orders
       throw new NotFoundException(
         'Order cannot be modified in its current state',
       );
@@ -508,7 +513,13 @@ export class OrdersService {
     }
 
     // Apply other scalar updates (status, notes, total)
-    if (typeof updateDto.status !== 'undefined') doc.status = updateDto.status;
+    if (typeof updateDto.status !== 'undefined') {
+      doc.status = updateDto.status;
+      // If order marked as paid, set completion timestamp
+      if (updateDto.status === OrderStatus.PAID) {
+        doc.completedAt = new Date();
+      }
+    }
     if (typeof updateDto.notes !== 'undefined') doc.notes = updateDto.notes;
 
     // Recalculate subtotal/total if people were modified or client did not provide explicit total
@@ -523,6 +534,15 @@ export class OrdersService {
     }
 
     await doc.save();
+
+    // If the order was marked as PAID, free the table (archive) so FOH shows it as available
+    if (typeof updateDto.status !== 'undefined' && doc.status === OrderStatus.PAID && doc.tableId) {
+      try {
+        await this.tableModel.findByIdAndUpdate(doc.tableId, { $set: { currentOrderId: null, status: 'available' } }).exec();
+      } catch (e) {
+        console.warn('Failed to update table when marking order as paid', e);
+      }
+    }
     try {
       // If status changed, emit a specific status.changed event
       if (
@@ -620,7 +640,8 @@ export class OrdersService {
       if (
         current !== OrderStatus.PREPARING &&
         current !== OrderStatus.CANCELLED &&
-        current !== OrderStatus.COMPLETED
+        current !== OrderStatus.COMPLETED &&
+        current !== OrderStatus.PAID
       ) {
         doc.status = OrderStatus.PREPARING;
       }

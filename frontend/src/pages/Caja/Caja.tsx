@@ -41,8 +41,8 @@ export default function Caja() {
     OrderService.getCajaOrders()
       .then((res: Order[]) => {
         if (!mounted) return;
-        // Limit orders to statuses relevant for Caja (orders ready/packaged/completed to be charged)
-        const cajaStatuses = ['ready', 'packaged', 'completed'];
+        // Limit orders to statuses relevant for Caja (orders ready/packaged/awaiting payment)
+        const cajaStatuses = ['ready', 'packaged', 'awaiting_payment'];
         const filtered = (res || []).filter((o: Order) => cajaStatuses.includes(String(o.status ?? '').toLowerCase()));
         const mapped: OrderCardModel[] = (filtered || []).map((o: Order) => {
           const id = o._id ?? o.id ?? String(Math.random()).slice(2, 9);

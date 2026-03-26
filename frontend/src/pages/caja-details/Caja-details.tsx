@@ -6,6 +6,9 @@ import POSList, { POSItem } from "../../components/caja/POSList";
 import POSSummary from "../../components/caja/POSSummary";
 import ComponentCard from "../../components/common/ComponentCard";
 import client from "../../api/client";
+import OrderService from "../Orders/Order.service";
+import { OrderStatus } from "../../constants/orderStatus";
+import { useAlert } from "../../context/AlertContext";
 
 export default function CajaDetails(): React.ReactElement {
   const { id } = useParams<{ id?: string }>();
@@ -151,6 +154,23 @@ export default function CajaDetails(): React.ReactElement {
     };
   }, [id, retryKey]);
 
+  const alert = useAlert();
+
+  const handleCharge = async () => {
+    if (!id) return;
+    setLoadingOrder(true);
+    try {
+      await OrderService.updateOrderStatus(String(id), OrderStatus.PAID);
+      alert.success('Pago registrado');
+      navigate('/caja');
+    } catch (err) {
+      console.error('Failed to register payment', err);
+      alert.error('Error cobrando');
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
+
   // Join order/table rooms and subscribe to relevant socket events
   useEffect(() => {
     if (!id || !socket) return;
@@ -293,7 +313,7 @@ export default function CajaDetails(): React.ReactElement {
                 subtotal={subtotal}
                 taxes={taxes}
                 total={total}
-                onCharge={() => console.log("Cobrar orden", id)}
+                onCharge={handleCharge}
                 onCancel={() => navigate(-1)}
               />
             </ComponentCard>
