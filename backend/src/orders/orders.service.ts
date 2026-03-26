@@ -22,7 +22,8 @@ export class OrdersService {
     switch (s) {
       case String(OrderStatus.ACCEPTED):
       case String(OrderStatus.PREPARING):
-        return ['KITCHEN', 'SUPERVISOR'];
+        // Include WAITER so front-of-house updates when order moves to PREPARING
+        return ['KITCHEN', 'SUPERVISOR', 'WAITER'];
       case String(OrderStatus.READY):
         return ['WAITER', 'CASHIER', 'SUPERVISOR'];
       case String(OrderStatus.PACKAGED):
@@ -43,7 +44,8 @@ export class OrdersService {
     const s = (status || '').toString().toLowerCase();
     switch (s) {
       case String(OrderStatus.PREPARING):
-        return ['KITCHEN', 'SUPERVISOR'];
+        // Notify kitchen and supervisor, and also the waiter so FOH updates when items enter preparing
+        return ['KITCHEN', 'SUPERVISOR', 'WAITER'];
       case String(OrderStatus.READY):
         return ['WAITER', 'CASHIER'];
       case String(OrderStatus.SERVED):
@@ -181,7 +183,7 @@ export class OrdersService {
       }
 
       await session.commitTransaction();
-      session.endSession();
+
       try {
         // Emit a lightweight order-created notification to relevant roles/rooms
         const roles = ['KITCHEN', 'SUPERVISOR', 'ADMIN'];
@@ -205,6 +207,8 @@ export class OrdersService {
         console.warn('Failed to emit order:created', e);
       }
 
+      return created;
+    } catch (err) {
       // If transactions are not supported on this server (common in local dev single-node),
       // fall back to a best-effort non-transactional flow: create order, then update table.
       const isTransactionNotSupported =
@@ -276,6 +280,15 @@ export class OrdersService {
       }
 
       throw err;
+    } finally {
+      if (session) {
+        try {
+          session.endSession();
+        } catch (e) {
+          // ignore
+          console.warn('Failed to end session', e);
+        }
+      }
     }
   }
 
@@ -471,11 +484,21 @@ export class OrdersService {
     await doc.save();
     try {
       // If status changed, emit a specific status.changed event
-      if (typeof updateDto.status !== 'undefined' && oldOrderStatus !== doc.status) {
+      if (
+        typeof updateDto.status !== 'undefined' &&
+        oldOrderStatus !== doc.status
+      ) {
         this.notifyOrderEvent(
           doc,
           'order:status.changed',
-          { oldStatus: oldOrderStatus, newStatus: doc.status, newPeopleCount: (typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0), newItemsCount: (typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0) },
+          {
+            oldStatus: oldOrderStatus,
+            newStatus: doc.status,
+            newPeopleCount:
+              typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0,
+            newItemsCount:
+              typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0,
+          },
           this.rolesForOrderStatus(doc.status),
         );
       }
@@ -484,7 +507,15 @@ export class OrdersService {
       this.notifyOrderEvent(
         doc,
         'order:updated',
-        { status: doc.status, tableLabel: doc.tableLabel, total: doc.total, newPeopleCount: (typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0), newItemsCount: (typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0) },
+        {
+          status: doc.status,
+          tableLabel: doc.tableLabel,
+          total: doc.total,
+          newPeopleCount:
+            typeof addedPeopleCount !== 'undefined' ? addedPeopleCount : 0,
+          newItemsCount:
+            typeof addedItemsCount !== 'undefined' ? addedItemsCount : 0,
+        },
         this.rolesForOrderStatus(doc.status),
       );
     } catch (e) {
@@ -499,15 +530,11 @@ export class OrdersService {
     const oldOrderStatus = doc.status;
     let found = false;
     let oldItemStatus: any = undefined;
-    let oldAssignedTo: any = undefined;
     for (const person of doc.people || []) {
       for (const it of person.orders || []) {
         if (String((it as any)._id) === String(itemId)) {
           // capture previous values
           oldItemStatus = (it as any).status;
-          oldAssignedTo = (it as any).assignedTo
-            ? String((it as any).assignedTo)
-            : undefined;
 
           if (dto.status) (it as any).status = dto.status;
           if (dto.assignedTo)
@@ -542,18 +569,27 @@ export class OrdersService {
         this.notifyOrderEvent(
           doc,
           'order:item:status.changed',
-          { itemId, oldStatus: oldItemStatus, newStatus: dto.status, assignedTo: dto.assignedTo },
+          {
+            itemId,
+            oldStatus: oldItemStatus,
+            newStatus: dto.status,
+            assignedTo: dto.assignedTo,
+          },
           roles,
         );
 
         // notify assigned user directly if present
         if (dto.assignedTo) {
           try {
-            this.socketService.emitToUser(dto.assignedTo, 'order:item:assigned', {
-              orderId: String(doc._id),
-              itemId,
-              assignedTo: dto.assignedTo,
-            });
+            this.socketService.emitToUser(
+              dto.assignedTo,
+              'order:item:assigned',
+              {
+                orderId: String(doc._id),
+                itemId,
+                assignedTo: dto.assignedTo,
+              },
+            );
           } catch (e) {
             console.warn('Failed to emit order:item:assigned', e);
           }
@@ -620,12 +656,11 @@ export class OrdersService {
     await doc.save();
     try {
       // notify item removed
-      this.notifyOrderEvent(
-        doc,
-        'order:item:removed',
-        { itemId },
-        ['SUPERVISOR', 'KITCHEN', 'WAITER'],
-      );
+      this.notifyOrderEvent(doc, 'order:item:removed', { itemId }, [
+        'SUPERVISOR',
+        'KITCHEN',
+        'WAITER',
+      ]);
 
       // Emit a general order update
       this.notifyOrderEvent(
@@ -679,7 +714,11 @@ export class OrdersService {
       this.notifyOrderEvent(
         order,
         'order:updated',
-        { status: order.status, tableLabel: order.tableLabel, total: order.total },
+        {
+          status: order.status,
+          tableLabel: order.tableLabel,
+          total: order.total,
+        },
         this.rolesForOrderStatus(order.status),
       );
     } catch (e) {

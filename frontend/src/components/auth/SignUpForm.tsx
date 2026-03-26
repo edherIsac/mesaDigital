@@ -5,6 +5,7 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import api from "../../api/client";
+import { useSocket } from "../../hooks/useSocket";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +17,7 @@ export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { joinRooms } = useSocket();
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -54,6 +56,13 @@ export default function SignUpForm() {
       }
       if (data?.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
+        try {
+          if (joinRooms && data.user?.role) {
+            await joinRooms([`role:${data.user.role}`, `user:${data.user.id}`]);
+          }
+        } catch (_) {
+          // ignore join failures
+        }
       }
       navigate("/", { replace: true });
     } catch (err: unknown) {

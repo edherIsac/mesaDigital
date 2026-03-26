@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-03-25T12:00:00.000Z" agent="copilot" etag="1" version="20.0.3" type="device">
+  <diagram id="socket1" name="Socket Notifications">
+    <![CDATA[
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Actors / Services -->
+        <mxCell id="100" value="&lt;b&gt;Client (POS / App)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DFF0D8;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="110" value="&lt;b&gt;Orders Service&lt;/b&gt;&lt;br/&gt;creates/updates items, triggers socket events" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4C2;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="120" value="&lt;b&gt;Socket Service&lt;/b&gt;&lt;br/&gt;emit(), emitToRooms(), emitToRoles(), emitToUser()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5FF;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="520" y="40" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="130" value="&lt;b&gt;Socket Gateway&lt;/b&gt;&lt;br/&gt;rooms: role:*, user:*, order:*, table:*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8DFFF;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="780" y="40" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="140" value="&lt;b&gt;Clients by Role / Room&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#000000;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1040" y="40" width="260" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Role rooms inside the clients box (visual only) -->
+        <mxCell id="141" value="role:KITCHEN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFDCDC;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="10" y="14" width="110" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="142" value="role:SUPERVISOR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF0F5;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="130" y="14" width="120" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="143" value="role:WAITER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FFF0;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="10" y="48" width="110" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="144" value="role:CASHIER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C2E7FF;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="130" y="48" width="120" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="145" value="role:ADMIN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFC2;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="70" y="82" width="120" height="28" as="geometry"/>
+        </mxCell>
+
+        <!-- Rooms legend -->
+        <mxCell id="150" value="order:{{orderId}}&lt;br/&gt;table:{{tableId}}&lt;br/&gt;user:{{userId}}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=11" vertex="1" parent="140">
+          <mxGeometry x="10" y="116" width="230" height="44" as="geometry"/>
+        </mxCell>
+
+        <!-- Events / flows -->
+        <mxCell id="e1" edge="1" source="100" target="110" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;endArrow=block;labelBackgroundColor=none;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="l1" value="create / update / item changes" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#000000;fontSize=11" edge="1" parent="1" source="100" target="110">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e2" edge="1" source="110" target="120" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0077CC;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="events: order:created, order:updated, order:status.changed, order:item:*" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#0077CC;fontSize=11" edge="1" parent="1" source="110" target="120">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e3" edge="1" source="120" target="130" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#007700;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3" value="socket emits (rooms &amp; user)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#007700;fontSize=11" edge="1" parent="1" source="120" target="130">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Socket gateway to rooms -->
+        <mxCell id="e4" edge="1" source="130" target="140" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4" value="emit to rooms: role:*, order:*, table:* (and emitToUser -> user:*)" style="edgeStyle=orthogonalEdgeStyle;html=1;rounded=0;strokeColor=#000000;fontSize=11" edge="1" parent="1" source="130" target="140">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Order states (summary with notify mapping) -->
+        <mxCell id="200" value="&lt;b&gt;Order States & Notifications&lt;/b&gt;&lt;br/&gt;PENDING: notify SUPERVISOR,KITCHEN,ADMIN (default)&lt;br/&gt;ACCEPTED: notify KITCHEN, SUPERVISOR&lt;br/&gt;PREPARING: notify KITCHEN, SUPERVISOR&lt;br/&gt;ON_HOLD: notify SUPERVISOR,KITCHEN&lt;br/&gt;READY: notify WAITER, CASHIER, SUPERVISOR&lt;br/&gt;PACKAGED: notify CASHIER, WAITER, SUPERVISOR&lt;br/&gt;SERVED/DELIVERED: notify SUPERVISOR, ADMIN&lt;br/&gt;CANCELLED: notify SUPERVISOR, ADMIN, WAITER&lt;br/&gt;COMPLETED: notify ADMIN, SUPERVISOR, CASHIER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4C2;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="160" width="220" height="260" as="geometry"/>
+        </mxCell>
+
+        <!-- Item states (summary) -->
+        <mxCell id="210" value="&lt;b&gt;Item States & Notifications&lt;/b&gt;&lt;br/&gt;PREPARING: notify KITCHEN, SUPERVISOR&lt;br/&gt;READY: notify WAITER, CASHIER&lt;br/&gt;SERVED: notify SUPERVISOR, WAITER&lt;br/&gt;CANCELLED: notify SUPERVISOR, ADMIN&lt;br/&gt;default: notify SUPERVISOR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C2E7FF;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="520" y="160" width="220" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Specific event examples -->
+        <mxCell id="220" value="order:created -> roles: KITCHEN, SUPERVISOR, ADMIN&lt;br/&gt;(emitted to rooms: role:*, order:{{orderId}}, table:{{tableId}})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8FFD6;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="440" width="480" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="230" value="order:item:status.changed -> roles per item status (see Item States)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF0F5;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="540" width="480" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="240" value="order:item:assigned -> emitToUser(userId) &amp; notify assigned user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="620" width="480" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="250" value="order:item:removed -> roles: SUPERVISOR, KITCHEN, WAITER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFDCDC;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="700" width="480" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Connecting role notifications visually to rooms -->
+        <mxCell id="r1" edge="1" source="120" target="141" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#AA4444;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2" edge="1" source="120" target="142" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#AA4444;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r3" edge="1" source="120" target="143" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#AA4444;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r4" edge="1" source="120" target="144" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#AA4444;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="r5" edge="1" source="120" target="145" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#AA4444;dashed=1;endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Emitting to order/table/user rooms -->
+        <mxCell id="o1" edge="1" source="120" target="150" parent="1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#000000;endArrow=block;dashed=1;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+    ]]>
+  </diagram>
+</mxfile>

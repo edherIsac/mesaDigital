@@ -5,6 +5,7 @@ import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
+import { useSocket } from "../../hooks/useSocket";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +14,7 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { joinRooms } = useSocket();
 
   const getErrorMessage = (err: unknown): string => {
     if (typeof err === "string") return err;
@@ -58,6 +60,13 @@ export default function SignInForm() {
       }
       if (data?.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
+        try {
+          if (joinRooms && data.user?.role) {
+            await joinRooms([`role:${data.user.role}`, `user:${data.user.id}`]);
+          }
+        } catch (_) {
+          // ignore join failures
+        }
       }
       navigate("/", { replace: true });
     } catch (err: unknown) {
