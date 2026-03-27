@@ -36,9 +36,12 @@ export class SocketService {
         this.emit(event, payload);
         return;
       }
-      for (const r of rooms) {
-        this.getServer().to(r).emit(event, payload);
+      const uniqRooms = Array.from(new Set((rooms || []).filter(Boolean)));
+      let broadcaster: any = this.getServer();
+      for (const r of uniqRooms) {
+        broadcaster = broadcaster.to(r);
       }
+      broadcaster.emit(event, payload);
     } catch (e) {
       this.logger.warn(`Failed emit to rooms ${rooms}: ${String(e)}`);
     }

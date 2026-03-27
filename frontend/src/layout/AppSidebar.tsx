@@ -115,9 +115,18 @@ const AppSidebar: React.FC = () => {
     }
 
     if (role === "ADMIN") {
+      extra.push({
+        icon: (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M8 9h8M8 13h8M8 17h8" />
+          </svg>
+        ),
+        name: "Ordenes",
+        path: "/admin/orders",
+      });
       const adminSub = [
         { name: "Usuarios", path: "/admin/users" },
-        { name: "Ordenes", path: "/admin/orders" },
         { name: "Sistema", path: "/admin/system" },
         { name: "Productos", path: "/admin/products" },
         { name: "Mesas", path: "/admin/mesas" },

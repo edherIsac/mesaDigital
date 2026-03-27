@@ -107,6 +107,7 @@ export class OrdersService {
     eventName: string,
     payload: Record<string, any> = {},
     extraRoles: string[] = [],
+    options?: { includeOrderAndTableRooms?: boolean },
   ) {
     try {
       const orderId = String(order._id ?? order.id ?? '');
@@ -114,10 +115,18 @@ export class OrdersService {
       const tableLabel = (order.tableLabel as string) ?? undefined;
       const base = { orderId, tableId, tableLabel, ...payload };
 
-      // Compose rooms: specific order/table + role rooms
+      // Compose rooms: specific order/table + role rooms. Allow callers
+      // to optionally suppress order/table rooms (useful when we want to
+      // target only role rooms and avoid delivering to sockets that are
+      // also joined to order/table rooms).
+      const includeOrderAndTableRooms =
+        options?.includeOrderAndTableRooms ?? true;
       const roleRooms = (extraRoles || []).map((r) => `role:${r}`);
-      const rooms = [...roleRooms, `order:${orderId}`];
-      if (tableId) rooms.push(`table:${tableId}`);
+      const rooms: string[] = [...roleRooms];
+      if (includeOrderAndTableRooms) {
+        rooms.push(`order:${orderId}`);
+        if (tableId) rooms.push(`table:${tableId}`);
+      }
 
       this.socketService.emitToRooms(eventName, base, rooms);
     } catch (e) {
@@ -600,6 +609,8 @@ export class OrdersService {
     let found = false;
     let oldItemStatus: string | undefined = undefined;
     let itemSnapshot: ItemSnapshot | undefined = undefined;
+    let itemStatusChangedToPreparing = false;
+    let itemStatusChanged = false;
 
     const people = (doc.people || []) as OrderPerson[];
     for (const person of people) {
@@ -659,6 +670,7 @@ export class OrdersService {
     try {
       // If item status changed, notify item-specific rooms/roles and assigned user
       if (dto.status && String(oldItemStatus) !== String(dto.status)) {
+        itemStatusChanged = true;
         // roles for this item status
         const roles = this.rolesForItemStatus(dto.status);
         const payloadForItemEvent: Record<string, any> = {
@@ -676,6 +688,11 @@ export class OrdersService {
           payloadForItemEvent,
           roles,
         );
+
+        // If this item moved to PREPARING, remember it so we can avoid
+        // sending redundant order-level notifications to the WAITER.
+        if (dto.status === OrderStatus.PREPARING)
+          itemStatusChangedToPreparing = true;
 
         // notify assigned user directly if present (include contextual details)
         if (dto.assignedTo) {
@@ -698,20 +715,36 @@ export class OrdersService {
 
       // If overall order status changed (e.g., moved to PREPARING), notify status change
       if (oldOrderStatus !== doc.status) {
+        let rolesForOrder = this.rolesForOrderStatus(doc.status);
+        if (itemStatusChangedToPreparing) {
+          rolesForOrder = (rolesForOrder || []).filter((r) => r !== 'WAITER');
+        }
         this.notifyOrderEvent(
           doc,
           'order:status.changed',
           { oldStatus: oldOrderStatus, newStatus: doc.status },
-          this.rolesForOrderStatus(doc.status),
+          rolesForOrder,
         );
       }
 
-      // Emit a general order update
+      // Emit a general order update. If the change was only an item status
+      // update (no order-level status change), exclude WAITER to avoid
+      // confusing/duplicate notifications (e.g., showing "preparación"
+      // when the item itself is already "listo"). If the overall order
+      // status changed, allow the normal role rooms so WAITER still sees
+      // genuine order-level transitions.
+      let rolesForOrderUpdate = this.rolesForOrderStatus(doc.status) || [];
+      const suppressOrderRooms =
+        itemStatusChanged && oldOrderStatus === doc.status;
+      if (suppressOrderRooms) {
+        rolesForOrderUpdate = rolesForOrderUpdate.filter((r) => r !== 'WAITER');
+      }
       this.notifyOrderEvent(
         doc,
         'order:updated',
         { status: doc.status, tableLabel: doc.tableLabel, total: doc.total },
-        this.rolesForOrderStatus(doc.status),
+        rolesForOrderUpdate,
+        { includeOrderAndTableRooms: !suppressOrderRooms },
       );
     } catch (e) {
       console.warn('Failed to emit order:updated', e);
