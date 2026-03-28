@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { useSocket } from "../../hooks/useSocket";
+// Socket interactions suppressed — useSocket removed
 import { OrderSocketPayload } from '../../interfaces/socket';
 import POSList, { POSItem } from "../../components/caja/POSList";
 import POSSummary from "../../components/caja/POSSummary";
@@ -44,7 +44,7 @@ export default function CajaDetails(): React.ReactElement {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState<number>(0);
 
-  const { socket, joinRooms, leaveRooms } = useSocket();
+  // socket usage removed by refactor
 
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
@@ -171,60 +171,7 @@ export default function CajaDetails(): React.ReactElement {
     }
   };
 
-  // Join order/table rooms and subscribe to relevant socket events
-  useEffect(() => {
-    if (!id || !socket) return;
-
-    const rooms: string[] = [`order:${id}`];
-    if (tableId) rooms.push(`table:${tableId}`);
-
-    let joined = false;
-    (async () => {
-      try {
-        if (joinRooms) {
-          joined = await joinRooms(rooms);
-        } else {
-          socket.emit('join', { rooms });
-          joined = true;
-        }
-      } catch (e) {
-        // ignore
-        console.log(e);
-        
-      }
-    })();
-
-    const handleAny = (payload: OrderSocketPayload) => {
-      if (!payload) return;
-      const payloadOrderId = payload.orderId ?? payload['orderId'];
-      if (!payloadOrderId) return;
-      if (String(payloadOrderId) !== String(id)) return;
-      // Refresh order data
-      setRetryKey((k) => k + 1);
-    };
-
-    socket.on('order:item:status.changed', handleAny);
-    socket.on('order:status.changed', handleAny);
-    socket.on('order:updated', handleAny);
-
-    return () => {
-      try {
-        socket.off('order:item:status.changed', handleAny);
-        socket.off('order:status.changed', handleAny);
-        socket.off('order:updated', handleAny);
-      } catch (e) {
-        console.log(e);
-      }
-      if (joined) {
-        try {
-          if (leaveRooms) leaveRooms(rooms);
-          else socket.emit('leave', { rooms });
-        } catch (e) {
-          console.log(e);
-        }
-      }
-    };
-  }, [socket, id, tableId, joinRooms, leaveRooms]);
+  // Socket-based live updates suppressed; rely on polling/fetch when needed
 
   return (
     <div>

@@ -58,46 +58,18 @@ export const SocketProvider = ({ children }: PropsWithChildren<unknown>) => {
   }, []);
 
     const joinRooms = async (rooms?: string[]) => {
-    if (!socket || !rooms || !rooms.length) return false;
-    return new Promise<boolean>((resolve) => {
-      try {
-        socket.emit('join', { rooms }, (res: JoinResponse | unknown) => {
-          if (res && typeof res === 'object' && 'ok' in (res as JoinResponse)) {
-            resolve(Boolean((res as JoinResponse).ok));
-            return;
-          }
-          resolve(Boolean(res));
-        });
-      } catch (_) {
-          resolve(false);
-        }
-    });
-  };
+      // Room join suppressed by refactor — no-op
+      return false;
+    };
 
-  const leaveRooms = async (rooms?: string[]) => {
-    if (!socket || !rooms || !rooms.length) return false;
-    return new Promise<boolean>((resolve) => {
-      try {
-        socket.emit('leave', { rooms }, (res: JoinResponse | unknown) => {
-          if (res && typeof res === 'object' && 'ok' in (res as JoinResponse)) {
-            resolve(Boolean((res as JoinResponse).ok));
-            return;
-          }
-          resolve(Boolean(res));
-        });
-      } catch (_) {
-          resolve(false);
-        }
-    });
-  };
+    const leaveRooms = async (rooms?: string[]) => {
+      // Room leave suppressed by refactor — no-op
+      return false;
+    };
 
-  const emit = (event: string, payload?: SocketAnyPayload) => {
-    try {
-      socket?.emit(event, payload);
-    } catch (_) {
-      // ignore
-    }
-  };
+    const emit = (event: string, payload?: SocketAnyPayload) => {
+      // Emitting suppressed by refactor — no-op
+    };
 
   return (
     <SocketContext.Provider value={{ socket, connected, joinRooms, leaveRooms, emit }}>

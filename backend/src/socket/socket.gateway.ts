@@ -58,31 +58,4 @@ export class SocketGateway
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('join')
-  handleJoin(@MessageBody() data: { rooms?: string[] }, @ConnectedSocket() client: Socket) {
-    if (!data || !Array.isArray(data.rooms)) return { ok: false };
-    for (const r of data.rooms) {
-      try {
-        client.join(r);
-      } catch (e) {
-        this.logger.warn(`Failed to join room ${r} for ${client.id}: ${String(e)}`);
-      }
-    }
-    this.logger.log(`Client ${client.id} joined rooms: ${data.rooms.join(',')}`);
-    return { ok: true };
-  }
-
-  @SubscribeMessage('leave')
-  handleLeave(@MessageBody() data: { rooms?: string[] }, @ConnectedSocket() client: Socket) {
-    if (!data || !Array.isArray(data.rooms)) return { ok: false };
-    for (const r of data.rooms) {
-      try {
-        client.leave(r);
-      } catch (e) {
-        this.logger.warn(`Failed to leave room ${r} for ${client.id}: ${String(e)}`);
-      }
-    }
-    this.logger.log(`Client ${client.id} left rooms: ${data.rooms.join(',')}`);
-    return { ok: true };
-  }
 }

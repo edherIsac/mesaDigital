@@ -1,6 +1,7 @@
 import { PageBreadcrumb, PageMeta, ComponentCard } from "../../components";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAlert } from "../../context/AlertContext";
+import { useSocket } from "../../hooks/useSocket";
 import OrderService from "../Orders/Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import {
@@ -17,7 +18,6 @@ import type {
   AggregatedKDSItem,
   KDSGroup,
 } from "../../interfaces/Order.interface";
-import { useSocket } from "../../hooks/useSocket";
 
 export default function KDS() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -27,6 +27,7 @@ export default function KDS() {
   const dynamicRef = useRef<HTMLDivElement | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | null>(null);
   const alert = useAlert();
+  const { socket, connected } = useSocket();
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -41,33 +42,33 @@ export default function KDS() {
     }
   };
 
+  // Initial fetch
   useEffect(() => {
     fetchOrders();
-    // const t = setInterval(fetchOrders, 8000);
-    // return () => clearInterval(t);
   }, []);
 
-  // Socket subscriptions: refresh KDS when relevant order events arrive
-  const { socket } = useSocket();
+  // Socket-based refresh for KDS - auto-update when orders change
+  // Note: KDS does NOT show toast notifications, only auto-refreshes the view
   useEffect(() => {
-    if (!socket) return;
-    const handler = (_payload: unknown) => {
-      // lightweight: re-fetch list on any relevant event
+    if (!socket || !connected) return;
+
+    // Handler for order changes - just refresh the list without notifications
+    const handleOrderChange = () => {
       fetchOrders();
     };
 
-    socket.on('order:created', handler);
-    socket.on('order:item:status.changed', handler);
-    socket.on('order:status.changed', handler);
-    socket.on('order:updated', handler);
+    // Listen to order events that affect KDS view
+    socket.on('order:created', handleOrderChange);
+    socket.on('order:updated', handleOrderChange);
+    socket.on('item:statusChanged', handleOrderChange);
 
+    // Cleanup
     return () => {
-      socket.off('order:created', handler);
-      socket.off('order:item:status.changed', handler);
-      socket.off('order:status.changed', handler);
-      socket.off('order:updated', handler);
+      socket.off('order:created', handleOrderChange);
+      socket.off('order:updated', handleOrderChange);
+      socket.off('item:statusChanged', handleOrderChange);
     };
-  }, [socket]);
+  }, [socket, connected]);
 
   useEffect(() => {
     const update = () => {

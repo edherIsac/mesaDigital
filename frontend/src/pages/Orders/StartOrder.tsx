@@ -17,7 +17,7 @@ import type { Order, Person, OrderItem } from "../../interfaces/Order.interface"
 import OrderService from "./Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import { CreateOrderDto } from "./Order.service";
-import { useSocket } from '../../hooks/useSocket';
+// Socket interactions suppressed — useSocket removed
 import { formatCurrency, DEFAULT_CURRENCY } from '../../utils/currency';
 
 // Usamos las interfaces centralizadas para las respuestas del backend
@@ -363,74 +363,7 @@ export default function StartOrder() {
     };
   }, [tableId, mesa]);
 
-  // Subscribe to socket events for the loaded order (if any)
-  const { socket, joinRooms, leaveRooms } = useSocket();
-  useEffect(() => {
-    const mid = mesa?.currentOrderId ? String(mesa.currentOrderId) : null;
-    if (!mid || !socket) return;
-
-    const rooms = [`order:${mid}`];
-    let joined = false;
-    (async () => {
-      try {
-        if (joinRooms) {
-          joined = await joinRooms(rooms);
-        } else {
-          socket.emit('join', { rooms });
-          joined = true;
-        }
-      } catch (_) {
-        // ignore
-      }
-    })();
-
-    const handle = async (_payload: unknown) => {
-      try {
-        const order = (await OrderService.getOrder(mid)) as Order | null;
-        if (!order) return;
-        setOrderStatus((order.status as OrderStatus) ?? OrderStatus.PENDING);
-        const mappedPeople: ComandaPerson[] = [];
-        if (order.people && Array.isArray(order.people) && order.people.length > 0) {
-          for (const p of order.people as Person[]) {
-            const mappedOrders = (p.orders || []).map((o: OrderItem, oi: number) => ({
-              id: o._id ?? `${p.id ?? 'p'}-${oi}`,
-              productId: o.menuItemId ? String(o.menuItemId) : undefined,
-              product: null,
-              name: o.name ?? '',
-              qty: o.quantity ?? o.qty ?? 1,
-              note: o.notes ?? o.note ?? "",
-              unitPrice: o.unitPrice ?? o.price ?? 0,
-              type: 'platillo',
-              coverImage: undefined,
-              status: o.status ?? 'pending',
-            }));
-            mappedPeople.push({ id: p.id ?? String(mappedPeople.length + 1), name: p.name ?? '', seat: p.seat, orders: mappedOrders });
-          }
-        }
-        setPeople(mappedPeople);
-      } catch (_) {
-        // ignore
-      }
-    };
-
-    socket.on('order:item:status.changed', handle);
-    socket.on('order:status.changed', handle);
-    socket.on('order:updated', handle);
-
-    return () => {
-      try {
-        socket.off('order:item:status.changed', handle);
-        socket.off('order:status.changed', handle);
-        socket.off('order:updated', handle);
-      } catch (_) {}
-      if (joined) {
-        try {
-          if (leaveRooms) leaveRooms(rooms);
-          else socket.emit('leave', { rooms });
-        } catch (_) {}
-      }
-    };
-  }, [mesa?.currentOrderId, socket, joinRooms, leaveRooms]);
+  // Socket-based order live updates suppressed; rely on fetch/poll instead
 
   // If the mesa has an associated order, load it and populate UI
   useEffect(() => {
