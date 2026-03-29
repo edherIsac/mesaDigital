@@ -115,32 +115,67 @@ export class OrdersService {
     data: any,
     status?: string,
   ) {
+    // Ensure we have a `newStatus` in the payload for consistent titles/messages
+    const effectiveData = { ...(data || {}) };
+    if (!effectiveData.newStatus && status) effectiveData.newStatus = status;
+
     const roles = status
       ? this.rolesForOrderStatus(status)
-      : data.newStatus
-        ? this.rolesForItemStatus(data.newStatus)
+      : effectiveData.newStatus
+        ? this.rolesForItemStatus(effectiveData.newStatus)
         : ['SUPERVISOR'];
 
     const notification: Partial<Notification> = {
       type: 'order',
-      title: this.getNotificationTitle(event, data),
-      message: this.getNotificationMessage(event, data),
-      data,
+      title: this.getNotificationTitle(event, effectiveData),
+      message: this.getNotificationMessage(event, effectiveData),
+      data: effectiveData,
       createdAt: Date.now(),
     };
 
     // Emit specific event to roles with notification in payload
-    this.socketService.emitToRoles(roles, event, { ...data, notification });
+    this.socketService.emitToRoles(roles, event, {
+      ...effectiveData,
+      notification,
+    });
   }
 
   private getNotificationTitle(event: string, data: any): string {
     switch (event) {
       case 'order:created':
-        return `Nueva orden ${data.orderNumber || ''}`;
-      case 'order:updated':
-        return `Orden ${data.orderNumber || data.orderId}: ${data.newStatus}`;
+        return data.tableLabel
+          ? `Nueva orden - Mesa ${data.tableLabel}`
+          : `Nueva orden ${data.orderNumber || ''}`;
+      case 'order:updated': {
+        // If items/people were added, prefer a summary in the title
+        if (
+          data.peopleAdded ||
+          data.itemsAdded ||
+          data.peopleAddedCount ||
+          data.itemsAddedCount
+        ) {
+          const pCount = Number(data.peopleAddedCount || 0);
+          const iCount = Number(data.itemsAddedCount || 0);
+          const parts: string[] = [];
+          if (pCount > 0)
+            parts.push(`${pCount} ${pCount === 1 ? 'persona' : 'personas'}`);
+          else if (data.peopleAdded) parts.push('nueva(s) persona(s)');
+          if (iCount > 0)
+            parts.push(`${iCount} ${iCount === 1 ? 'platillo' : 'platillos'}`);
+          else if (data.itemsAdded) parts.push('nuevos platillos');
+          const summary = parts.length ? parts.join(' y ') : 'nuevos elementos';
+          return data.tableLabel
+            ? `Mesa ${data.tableLabel}: ${summary}`
+            : `Orden ${data.orderNumber || data.orderId}: ${summary}`;
+        }
+        return data.tableLabel
+          ? `Mesa ${data.tableLabel}: ${data.newStatus}`
+          : `Orden ${data.orderNumber || data.orderId}: ${data.newStatus}`;
+      }
       case 'order:cancelled':
-        return `Orden ${data.orderNumber || data.orderId} cancelada`;
+        return data.tableLabel
+          ? `Mesa ${data.tableLabel}: orden cancelada`
+          : `Orden ${data.orderNumber || data.orderId} cancelada`;
       case 'item:statusChanged':
         return `${data.itemName || 'Item'}: ${data.newStatus}`;
       default:
@@ -155,6 +190,24 @@ export class OrdersService {
           ? `Mesa ${data.tableLabel} - Total: $${data.total?.toFixed(2) || '0.00'}`
           : `Orden para ${data.type || 'llevar'}`;
       case 'order:updated':
+        if (
+          data.peopleAdded ||
+          data.itemsAdded ||
+          data.peopleAddedCount ||
+          data.itemsAddedCount
+        ) {
+          const pCount = Number(data.peopleAddedCount || 0);
+          const iCount = Number(data.itemsAddedCount || 0);
+          const total = (pCount || 0) + (iCount || 0);
+          const verb = total === 1 ? 'Se agregó' : 'Se agregaron';
+          const parts: string[] = [];
+          if (pCount > 0)
+            parts.push(`${pCount} ${pCount === 1 ? 'persona' : 'personas'}`);
+          if (iCount > 0)
+            parts.push(`${iCount} ${iCount === 1 ? 'platillo' : 'platillos'}`);
+          const details = parts.length ? parts.join(' y ') : 'nuevos elementos';
+          return `${verb} ${details} a la comanda`;
+        }
         return `La orden ha cambiado a estado ${data.newStatus}`;
       case 'order:cancelled':
         return data.reason || 'La orden ha sido cancelada';
@@ -460,6 +513,12 @@ export class OrdersService {
       );
     }
 
+    // Track if items/people were added for notification and counts
+    let itemsAdded = false;
+    let peopleAdded = false;
+    let addedPeopleCount = 0;
+    let addedItemsCount = 0;
+
     // If there are people to add/merge
     // Track counts of newly added people and newly added items for notifications
     // let addedPeopleCount = 0;
@@ -513,8 +572,18 @@ export class OrdersService {
                     status: (o as any).status ?? OrderStatus.PENDING,
                   };
                   existing.orders.push(newOrder);
+                  // Mark that items were added so KDS/roles are notified
+                  itemsAdded = true;
                   // Count added items (respecting quantity)
-                  // addedItemsCount += getQty(o);
+                  try {
+                    addedItemsCount += Number(getQty(o) || 0);
+                  } catch (e) {
+                    // ignore
+                    console.warn(
+                      'Failed to count added items for notification',
+                      e,
+                    );
+                  }
                 }
               }
             }
@@ -536,6 +605,28 @@ export class OrdersService {
           }));
         }
         (doc.people as any[]).push(newPerson);
+        // Mark that a new person was added
+        peopleAdded = true;
+        addedPeopleCount += 1;
+        if (
+          newPerson.orders &&
+          Array.isArray(newPerson.orders) &&
+          newPerson.orders.length
+        ) {
+          let cnt = 0;
+          for (const o of newPerson.orders) {
+            try {
+              cnt += Number(getQty(o) || 0);
+            } catch (e) {
+              // ignore
+              console.warn('Failed to count added items for notification', e);
+            }
+          }
+          if (cnt > 0) {
+            itemsAdded = true;
+            addedItemsCount += cnt;
+          }
+        }
         // addedPeopleCount += 1;
       }
     }
@@ -556,8 +647,9 @@ export class OrdersService {
     // Recalculate subtotal/total if people were modified or client did not provide explicit total
     if (updateDto.people && updateDto.people.length) {
       let subtotal = 0;
-      for (const p of doc.people || [])
+      for (const p of doc.people || []) {
         for (const it of p.orders || []) subtotal += calcItemTotal(it);
+      }
       doc.subtotal = subtotal;
       doc.total = subtotal + (doc.tax || 0);
     } else if (typeof updateDto.total !== 'undefined') {
@@ -565,6 +657,24 @@ export class OrdersService {
     }
 
     await doc.save();
+
+    // Notify about items/people being added to existing order (for KDS refresh)
+    if (itemsAdded || peopleAdded) {
+      this.notifyOrderEvent(
+        'order:updated',
+        {
+          orderId: String(doc._id),
+          orderNumber: doc.orderNumber,
+          tableId: doc.tableId ? String(doc.tableId) : null,
+          tableLabel: (doc as any).tableLabel,
+          itemsAdded,
+          peopleAdded,
+          itemsAddedCount: addedItemsCount,
+          peopleAddedCount: addedPeopleCount,
+        },
+        doc.status,
+      );
+    }
 
     // If the order was marked as PAID, free the table (archive) so FOH shows it as available
     if (
