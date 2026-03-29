@@ -9,6 +9,7 @@ import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { OrderStatus } from './order-status.enum';
 import { SocketService } from '../socket/socket.service';
 import { Notification } from '../common/interfaces/notification.interface';
+import { orderStatusLabel } from '../common/utils/status-labels';
 
 // Strongly-typed local interfaces to avoid excessive `any` casts in this service
 interface OrderItemDoc {
@@ -118,6 +119,17 @@ export class OrdersService {
     // Ensure we have a `newStatus` in the payload for consistent titles/messages
     const effectiveData = { ...(data || {}) };
     if (!effectiveData.newStatus && status) effectiveData.newStatus = status;
+    // Add human-friendly Spanish label for status
+    if (effectiveData.newStatus) {
+      try {
+        effectiveData.newStatusLabel = orderStatusLabel(
+          effectiveData.newStatus,
+        );
+      } catch (e) {
+        console.warn('Failed to get status label for notification', e);
+        effectiveData.newStatusLabel = String(effectiveData.newStatus);
+      }
+    }
 
     // Special handling for item-level status changes:
     // - still emit the event to all relevant roles so UIs (KDS) refresh,
@@ -204,9 +216,11 @@ export class OrdersService {
             ? `Mesa ${data.tableLabel}: ${summary}`
             : `Orden ${data.orderNumber || data.orderId}: ${summary}`;
         }
+        const statusLabel =
+          data.newStatusLabel ?? orderStatusLabel(data.newStatus);
         return data.tableLabel
-          ? `Mesa ${data.tableLabel}: ${data.newStatus}`
-          : `Orden ${data.orderNumber || data.orderId}: ${data.newStatus}`;
+          ? `Mesa ${data.tableLabel}: ${statusLabel}`
+          : `Orden ${data.orderNumber || data.orderId}: ${statusLabel}`;
       }
       case 'order:cancelled':
         return data.tableLabel
@@ -218,9 +232,11 @@ export class OrdersService {
           : data?.tableId
             ? `Mesa ${data.tableId}`
             : undefined;
+        const statusLabel =
+          data.newStatusLabel ?? orderStatusLabel(data.newStatus);
         if (tableStr)
-          return `${data.itemName || 'Item'} — ${tableStr}: ${data.newStatus}`;
-        return `${data.itemName || 'Item'}: ${data.newStatus}`;
+          return `${data.itemName || 'Item'} — ${tableStr}: ${statusLabel}`;
+        return `${data.itemName || 'Item'}: ${statusLabel}`;
       }
       default:
         return 'Notificación';
@@ -233,7 +249,7 @@ export class OrdersService {
         return data.tableLabel
           ? `Mesa ${data.tableLabel} - Total: $${data.total?.toFixed(2) || '0.00'}`
           : `Orden para ${data.type || 'llevar'}`;
-      case 'order:updated':
+      case 'order:updated': {
         if (
           data.peopleAdded ||
           data.itemsAdded ||
@@ -252,7 +268,10 @@ export class OrdersService {
           const details = parts.length ? parts.join(' y ') : 'nuevos elementos';
           return `${verb} ${details} a la comanda`;
         }
-        return `La orden ha cambiado a estado ${data.newStatus}`;
+        const statusLabel =
+          data.newStatusLabel ?? orderStatusLabel(data.newStatus);
+        return `La orden ha cambiado a estado ${statusLabel}`;
+      }
       case 'order:cancelled':
         return data.reason || 'La orden ha sido cancelada';
       case 'item:statusChanged': {
@@ -261,17 +280,18 @@ export class OrdersService {
           : data?.tableId
             ? `Mesa ${data.tableId}`
             : undefined;
-        if (
-          String(data.newStatus).toLowerCase() ===
-          String(OrderStatus.PREPARING).toLowerCase()
-        ) {
+        const normalized = (data.newStatus || '').toString().toLowerCase();
+        const preparingRaw = String(OrderStatus.PREPARING).toLowerCase();
+        if (normalized === preparingRaw) {
           if (tableStr)
             return `${data.itemName || 'Un item'} de ${tableStr} se ha comenzado a preparar`;
           return `${data.itemName || 'Un item'} se ha comenzado a preparar`;
         }
+        const statusLabel =
+          data.newStatusLabel ?? orderStatusLabel(data.newStatus);
         if (tableStr)
-          return `${data.itemName || 'Un item'} ahora está ${data.newStatus} (${tableStr})`;
-        return `${data.itemName || 'Un item'} ahora está ${data.newStatus}`;
+          return `${data.itemName || 'Un item'} ahora está ${statusLabel} (${tableStr})`;
+        return `${data.itemName || 'Un item'} ahora está ${statusLabel}`;
       }
       default:
         return '';

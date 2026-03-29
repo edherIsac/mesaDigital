@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Table, TableDocument } from './schemas/table.schema';
 import { SocketService } from '../socket/socket.service';
+import { tableStatusLabel } from '../common/utils/status-labels';
 
 function normalizeStatus(s?: string): string | undefined {
   if (!s || typeof s !== 'string') return undefined;
@@ -105,10 +106,11 @@ export class TablesService {
 
     // Also send a notification for significant status changes
     if (data.newStatus === 'occupied' || data.newStatus === 'available') {
+      const statusLabel = tableStatusLabel(data.newStatus);
       const notification = {
         type: 'info' as const,
-        title: `Mesa ${data.tableLabel || data.tableId}: ${data.newStatus}`,
-        message: `La mesa ${data.tableLabel || ''} ahora está ${data.newStatus}`,
+        title: `Mesa ${data.tableLabel || data.tableId}: ${statusLabel}`,
+        message: `La mesa ${data.tableLabel || ''} ahora está ${statusLabel}`,
         data,
         createdAt: Date.now(),
       };
