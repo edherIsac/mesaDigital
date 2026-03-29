@@ -119,6 +119,42 @@ export class OrdersService {
     const effectiveData = { ...(data || {}) };
     if (!effectiveData.newStatus && status) effectiveData.newStatus = status;
 
+    // Special handling for item-level status changes:
+    // - still emit the event to all relevant roles so UIs (KDS) refresh,
+    // - but only send the `notification` payload to non-KITCHEN roles (WAITER/SUPERVISOR)
+    if (event === 'item:statusChanged') {
+      const allRoles = this.rolesForItemStatus(effectiveData.newStatus);
+
+      // Split roles so we don't double-emit: kitchen roles get the event (no toast),
+      // other roles get event + notification (toast)
+      const kitchenRoles = (allRoles || []).filter(
+        (r) => String(r).toUpperCase() === 'KITCHEN',
+      );
+      const notifyRoles = (allRoles || []).filter(
+        (r) => String(r).toUpperCase() !== 'KITCHEN',
+      );
+
+      // Emit event payload without toast/notification to kitchen roles (so KDS can refresh)
+      if (kitchenRoles.length)
+        this.socketService.emitToRoles(kitchenRoles, event, effectiveData);
+
+      // Build notification payload and emit only to roles that should see a toast
+      if (notifyRoles.length) {
+        const notification: Partial<Notification> = {
+          type: 'order',
+          title: this.getNotificationTitle(event, effectiveData),
+          message: this.getNotificationMessage(event, effectiveData),
+          data: effectiveData,
+          createdAt: Date.now(),
+        };
+        this.socketService.emitToRoles(notifyRoles, event, {
+          ...effectiveData,
+          notification,
+        });
+      }
+
+      return;
+    }
     const roles = status
       ? this.rolesForOrderStatus(status)
       : effectiveData.newStatus
@@ -176,8 +212,16 @@ export class OrdersService {
         return data.tableLabel
           ? `Mesa ${data.tableLabel}: orden cancelada`
           : `Orden ${data.orderNumber || data.orderId} cancelada`;
-      case 'item:statusChanged':
+      case 'item:statusChanged': {
+        const tableStr = data?.tableLabel
+          ? `Mesa ${data.tableLabel}`
+          : data?.tableId
+            ? `Mesa ${data.tableId}`
+            : undefined;
+        if (tableStr)
+          return `${data.itemName || 'Item'} — ${tableStr}: ${data.newStatus}`;
         return `${data.itemName || 'Item'}: ${data.newStatus}`;
+      }
       default:
         return 'Notificación';
     }
@@ -211,8 +255,24 @@ export class OrdersService {
         return `La orden ha cambiado a estado ${data.newStatus}`;
       case 'order:cancelled':
         return data.reason || 'La orden ha sido cancelada';
-      case 'item:statusChanged':
+      case 'item:statusChanged': {
+        const tableStr = data?.tableLabel
+          ? `Mesa ${data.tableLabel}`
+          : data?.tableId
+            ? `Mesa ${data.tableId}`
+            : undefined;
+        if (
+          String(data.newStatus).toLowerCase() ===
+          String(OrderStatus.PREPARING).toLowerCase()
+        ) {
+          if (tableStr)
+            return `${data.itemName || 'Un item'} de ${tableStr} se ha comenzado a preparar`;
+          return `${data.itemName || 'Un item'} se ha comenzado a preparar`;
+        }
+        if (tableStr)
+          return `${data.itemName || 'Un item'} ahora está ${data.newStatus} (${tableStr})`;
         return `${data.itemName || 'Un item'} ahora está ${data.newStatus}`;
+      }
       default:
         return '';
     }
@@ -770,6 +830,8 @@ export class OrdersService {
           newStatus: dto.status,
           itemName,
           assignedTo: dto.assignedTo ? String(dto.assignedTo) : undefined,
+          tableId: doc.tableId ? String(doc.tableId) : null,
+          tableLabel: (doc as any).tableLabel,
         },
         dto.status,
       );
