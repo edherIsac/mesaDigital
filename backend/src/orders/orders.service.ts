@@ -68,9 +68,11 @@ export class OrdersService {
         // Include WAITER so front-of-house updates when order moves to PREPARING
         return ['KITCHEN', 'SUPERVISOR', 'WAITER'];
       case String(OrderStatus.READY):
-        return ['WAITER', 'CASHIER', 'SUPERVISOR'];
+        // Cashier should not be notified for general READY state; only when sent to caja for payment
+        return ['WAITER', 'SUPERVISOR'];
       case String(OrderStatus.PACKAGED):
-        return ['CASHIER', 'WAITER', 'SUPERVISOR'];
+        // Packaged is a FOH concern but not for cashier unless awaiting payment
+        return ['WAITER', 'SUPERVISOR'];
       case String(OrderStatus.SERVED):
       case String(OrderStatus.DELIVERED):
         return ['SUPERVISOR', 'ADMIN'];
@@ -79,7 +81,8 @@ export class OrdersService {
         return ['CASHIER', 'WAITER', 'SUPERVISOR'];
       case String(OrderStatus.PAID):
       case String(OrderStatus.COMPLETED):
-        return ['ADMIN', 'SUPERVISOR', 'CASHIER'];
+        // After payment/completion, notify admin/supervisor; cashier does not need further toasts
+        return ['ADMIN', 'SUPERVISOR'];
       case String(OrderStatus.CANCELLED):
         return ['SUPERVISOR', 'ADMIN', 'WAITER'];
       default:
@@ -94,7 +97,8 @@ export class OrdersService {
         // Notify kitchen and supervisor, and also the waiter so FOH updates when items enter preparing
         return ['KITCHEN', 'SUPERVISOR', 'WAITER'];
       case String(OrderStatus.READY):
-        return ['WAITER', 'CASHIER'];
+        // Item ready is relevant to waiter/supervisor; cashier should not receive per requirement
+        return ['WAITER', 'SUPERVISOR'];
       case String(OrderStatus.SERVED):
         return ['SUPERVISOR', 'WAITER'];
       case String(OrderStatus.CANCELLED):
