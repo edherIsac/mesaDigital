@@ -7,6 +7,7 @@ import type { Order, Person, OrderItem } from "../../interfaces/Order.interface"
 // Socket interactions suppressed — useSocket removed
 import { SocketContext } from '../../context/SocketContext';
 import { OrderStatus } from '../../constants/orderStatus';
+import { formatCurrency } from '../../utils/currency';
 
 // Orders are loaded from backend /orders/caja
 
@@ -124,24 +125,89 @@ export default function Caja() {
           <div className="text-sm text-gray-500">Total pedidos: <span className="font-medium text-gray-800 dark:text-white/90">{loadingOrders ? '…' : orders.length}</span></div>
         </div>
 
-        <div className="w-full flex-1 min-h-0 overflow-hidden">
-          <div
-            className="grid gap-4 w-full h-full min-h-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-            style={{ gridAutoRows: 'minmax(0, 1fr)' }}
-          >
-            {loadingOrders ? (
-              <div className="p-6">Cargando órdenes…</div>
-            ) : orders.length === 0 ? (
-              <div className="p-6">No hay órdenes disponibles.</div>
-            ) : (
-              orders.map((o) => (
-                <div key={o.id} className="p-3 h-full min-h-0">
-                  <OrderCard order={o} onClick={(id) => navigate(`/caja/detalles/${id}`)} />
+              <div className="w-full flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] h-full">
+                  <div className="overflow-x-auto h-full">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-white/[0.03] dark:text-gray-300">
+                          <th className="px-4 py-3">Orden</th>
+                          <th className="px-4 py-3">Mesa</th>
+                          <th className="px-4 py-3">Comensales</th>
+                          <th className="px-4 py-3">Total</th>
+                          <th className="px-4 py-3">Colocado</th>
+                          <th className="px-4 py-3">Estado</th>
+                          <th className="px-4 py-3">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loadingOrders && [1,2,3,4].map(i => (
+                          <tr key={i} className="border-t border-gray-100 dark:border-gray-800 animate-pulse">
+                            {[1,2,3,4,5,6,7].map((c) => (
+                              <td key={c} className="px-4 py-4"><div className="h-3 rounded bg-gray-200 dark:bg-gray-700" style={{width: `${30 + c*8}%`}}/></td>
+                            ))}
+                          </tr>
+                        ))}
+
+                        {!loadingOrders && orders.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="px-4 py-10 text-center text-gray-400 dark:text-gray-300">
+                              <div className="flex flex-col items-center gap-2">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="opacity-40">
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                  <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                                <span>No hay órdenes disponibles.</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+
+                        {!loadingOrders && orders.map((o) => (
+                          <tr
+                            key={o.id}
+                            onClick={() => navigate(`/caja/detalles/${o.id}`)}
+                            role="button"
+                            tabIndex={0}
+                            className="border-t border-gray-100 transition-colors hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.03] cursor-pointer"
+                          >
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-gray-900 dark:text-white">{o.id}</div>
+                              <div className="text-xs text-gray-500">#{o.id.slice(0,8)}</div>
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-gray-800 dark:text-white">{String(o.table)}</td>
+                            <td className="px-4 py-3 text-gray-600">{o.people}</td>
+                            <td className="px-4 py-3 text-gray-700 dark:text-gray-200">{formatCurrency(o.total)}</td>
+                            <td className="px-4 py-3 text-gray-500">{new Date(o.placedAt || Date.now()).toLocaleString()}</td>
+                            <td className="px-4 py-3">
+                              <div className={`inline-flex items-center gap-2 px-2 py-1 rounded text-xs font-medium ${o.status === 'urgent' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : o.status === 'ready' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200'}`}>
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: o.status === 'urgent' ? '#ef4444' : o.status === 'ready' ? '#10b981' : '#f59e0b' }} />
+                                <span className="uppercase tracking-wider">{o.status === 'ready' ? 'Lista para cobrar' : o.status === 'urgent' ? 'Urgente' : 'Pendiente'}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/caja/detalles/${o.id}`); }}
+                                className="inline-flex items-center rounded-md px-3 py-1 text-sm font-medium bg-brand-500 text-white hover:bg-brand-600"
+                              >
+                                Ver detalles
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Footer count */}
+                  {!loadingOrders && (
+                    <div className="border-t border-gray-100 px-4 py-2 text-xs text-gray-400 dark:border-gray-800 dark:text-gray-400">
+                      {orders.length} orden{orders.length !== 1 ? 'es' : ''}
+                    </div>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              </div>
       </div>
     </div>
   );
