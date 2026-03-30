@@ -1,10 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router';
 import { PageBreadcrumb, PageMeta, OrderCard } from "../../components";
 import type { OrderCardModel } from "../../components/common/OrderCard";
 import OrderService from "../Orders/Order.service";
 import type { Order, Person, OrderItem } from "../../interfaces/Order.interface";
 // Socket interactions suppressed — useSocket removed
+import { SocketContext } from '../../context/SocketContext';
+import { OrderStatus } from '../../constants/orderStatus';
 
 // Orders are loaded from backend /orders/caja
 
@@ -33,7 +35,7 @@ export default function Caja() {
   const [orders, setOrders] = useState<OrderCardModel[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  // socket usage removed
+  const { socket, connected } = useContext(SocketContext);
 
   useEffect(() => {
     let mounted = true;
@@ -70,8 +72,40 @@ export default function Caja() {
     return () => { mounted = false; };
   }, [refreshKey]);
 
-    // Socket-based refresh suppressed; relying on manual refresh/polling
+    // Socket-based refresh: update list when backend notifies about order changes
+    // (e.g., order updated to awaiting_payment)
+  useEffect(() => {
+    if (!socket || !connected) return;
 
+    const handler = (payload: any) => {
+      const p = payload ?? {};
+      const newStatus = p.newStatus ?? (p.notification && p.notification.data && p.notification.data.newStatus) ?? (p.data && p.data.newStatus);
+      if (newStatus) {
+        const ns = String(newStatus).toLowerCase();
+        // Refresh when order enters or leaves awaiting payment (or other terminal states)
+        if (
+          ns === OrderStatus.AWAITING_PAYMENT ||
+          ns === OrderStatus.PAID ||
+          ns === OrderStatus.CANCELLED ||
+          ns === OrderStatus.COMPLETED
+        ) {
+          setRefreshKey((k) => k + 1);
+          return;
+        }
+      }
+      // Fallback: if an orderId is present, refresh the list since it may affect caja
+      if (p.orderId) setRefreshKey((k) => k + 1);
+    };
+
+    socket.on('order:updated', handler);
+    socket.on('item:statusChanged', handler);
+
+    return () => {
+      socket.off('order:updated', handler);
+      socket.off('item:statusChanged', handler);
+    };
+  }, [socket, connected]);
+  
   return (
     <div>
       <PageMeta title="Caja | mesaDigital" description="Punto de pago — gestión de pagos y cierre de órdenes" />
