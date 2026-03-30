@@ -1,6 +1,6 @@
 import PageMeta from "../../components/common/PageMeta";
 import ComponentCard from "../../components/common/ComponentCard";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
 import { Modal } from "../../components/ui/modal";
 import { ChevronDownIcon } from "../../icons";
 import { useParams, useLocation, useNavigate } from "react-router";
@@ -10,6 +10,7 @@ import ProductSelectorDialog from "../../components/orders/ProductSelectorDialog
 import type { Product } from "../../interfaces/Product.interface";
 import ProductService from "../Admin/Products/Product.service";
 import { useAlert } from "../../context/AlertContext";
+import { SocketContext } from '../../context/SocketContext';
 import { itemStatusLabel, normalizeStatus, itemStatusClass } from "../../constants/statuses";
 import { Category } from "../../constants/categories";
 import type { Comanda, ComandaPerson, ComandaTotals } from "../../interfaces/Comanda.interface";
@@ -54,6 +55,11 @@ export default function StartOrder() {
   const [pendingSelection, setPendingSelection] = useState<
     { product: Product; qty: number; note: string }[] | null
   >(null);
+
+  // Live refresh trigger and socket/alert context
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { socket, connected } = useContext(SocketContext);
+  const alert = useAlert();
 
   const toggleRow = (id: number) => {
     setOpenRows((prev) => (prev[id] ? {} : { [id]: true }));
@@ -442,7 +448,31 @@ export default function StartOrder() {
     return () => {
       mounted = false;
     };
-  }, [mesa?.currentOrderId]);
+  }, [mesa?.currentOrderId, refreshKey]);
+
+  // Listen for socket item/order updates for this mesa and refresh when relevant
+  useEffect(() => {
+    if (!socket || !connected) return;
+
+    const handler = (payload: any) => {
+      const p = payload ?? {};
+      const orderId = p.orderId ?? (p.data && p.data.orderId) ?? null;
+      const table = p.tableId ?? (p.data && p.data.tableId) ?? null;
+      if (orderId && mesa?.currentOrderId && String(orderId) === String(mesa.currentOrderId)) {
+        setRefreshKey((k) => k + 1);
+      } else if (table && tableId && String(table) === String(tableId)) {
+        setRefreshKey((k) => k + 1);
+      }
+    };
+
+    socket.on('item:statusChanged', handler);
+    socket.on('order:updated', handler);
+
+    return () => {
+      socket.off('item:statusChanged', handler);
+      socket.off('order:updated', handler);
+    };
+  }, [socket, connected, mesa?.currentOrderId, tableId]);
 
   // no start button on this screen; order creation handled elsewhere
 
@@ -526,7 +556,6 @@ export default function StartOrder() {
   const [completing, setCompleting] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [canceling, setCanceling] = useState(false);
-  const alert = useAlert();
 
   const handlePlaceComanda = async () => {
     if (placing) return;

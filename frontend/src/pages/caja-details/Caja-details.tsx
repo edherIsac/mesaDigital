@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router";
 // Socket interactions suppressed — useSocket removed
 import { OrderSocketPayload } from '../../interfaces/socket';
@@ -9,6 +9,7 @@ import client from "../../api/client";
 import OrderService from "../Orders/Order.service";
 import { OrderStatus } from "../../constants/orderStatus";
 import { useAlert } from "../../context/AlertContext";
+import { SocketContext } from "../../context/SocketContext";
 
 export default function CajaDetails(): React.ReactElement {
   const { id } = useParams<{ id?: string }>();
@@ -153,6 +154,30 @@ export default function CajaDetails(): React.ReactElement {
       cancelled = true;
     };
   }, [id, retryKey]);
+
+  // Live-update: refresh order details when relevant socket events arrive
+  const { socket, connected } = useContext(SocketContext);
+
+  useEffect(() => {
+    if (!socket || !connected || !id) return;
+
+    const handler = (payload: any) => {
+      const p = payload ?? {};
+      const orderId = p.orderId ?? (p.data && p.data.orderId) ?? null;
+      if (!orderId) return;
+      if (String(orderId) === String(id)) {
+        setRetryKey((k) => k + 1);
+      }
+    };
+
+    socket.on('item:statusChanged', handler);
+    socket.on('order:updated', handler);
+
+    return () => {
+      socket.off('item:statusChanged', handler);
+      socket.off('order:updated', handler);
+    };
+  }, [socket, connected, id]);
 
   const alert = useAlert();
 
