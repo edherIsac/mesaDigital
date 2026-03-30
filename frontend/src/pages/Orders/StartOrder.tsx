@@ -1035,7 +1035,7 @@ export default function StartOrder() {
                     </svg>
                     {placing ? 'Enviando...' : mesa?.currentOrderId ? 'Modificar comanda' : 'Colocar comanda'}
                   </button>
-                  {mesa?.currentOrderId && (
+                  {mesa?.currentOrderId && normalizeStatus(orderStatus) !== OrderStatus.AWAITING_PAYMENT && (
                     <button
                       onClick={handleSendToCaja}
                       disabled={completing}
@@ -1043,6 +1043,11 @@ export default function StartOrder() {
                     >
                       {completing ? 'Enviando...' : 'Enviar a caja'}
                     </button>
+                  )}
+                  {mesa?.currentOrderId && normalizeStatus(orderStatus) === OrderStatus.AWAITING_PAYMENT && (
+                    <div className="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700">
+                      Enviada a caja
+                    </div>
                   )}
                 </div>
               </div>
