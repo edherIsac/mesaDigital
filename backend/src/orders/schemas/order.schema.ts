@@ -131,6 +131,12 @@ export class Order {
   @Prop()
   completedAt?: Date;
 
+  @Prop({ type: String })
+  placedBy?: string;
+
+  @Prop({ type: String })
+  paidBy?: string;
+
   @Prop({ type: Object, default: {} })
   meta?: Record<string, any>;
 }

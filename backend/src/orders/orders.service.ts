@@ -302,7 +302,7 @@ export class OrdersService {
     }
   }
 
-  async create(createDto: CreateOrderDto) {
+  async create(createDto: CreateOrderDto, actorId?: string) {
     const orderNumber = `ODR-${Date.now()}`;
     const now = new Date();
     // Normalize input into `people` (preferred)
@@ -381,6 +381,9 @@ export class OrdersService {
       notes: createDto.notes,
       priority: createDto.priority || 'normal',
     } as Partial<Order>;
+
+    // Record which user placed the order (store as string to avoid cast issues)
+    if (actorId) orderDoc.placedBy = String(actorId);
 
     let session: ClientSession | null = null;
     try {
@@ -562,7 +565,7 @@ export class OrdersService {
     return doc;
   }
 
-  async update(id: string, updateDto: UpdateOrderDto) {
+  async update(id: string, updateDto: UpdateOrderDto, actorId?: string) {
     // If client attempts to add items or people, we need to merge them into
     // the existing order document, recalculate totals and enforce basic
     // status rules (do not allow adding to cancelled/completed orders).
@@ -721,9 +724,10 @@ export class OrdersService {
     // Apply other scalar updates (status, notes, total)
     if (typeof updateDto.status !== 'undefined') {
       doc.status = updateDto.status;
-      // If order marked as paid, set completion timestamp
+      // If order marked as paid, set completion timestamp and record cashier
       if (updateDto.status === OrderStatus.PAID) {
         doc.completedAt = new Date();
+        if (actorId) doc.paidBy = String(actorId);
       }
     }
     if (typeof updateDto.notes !== 'undefined') doc.notes = updateDto.notes;
