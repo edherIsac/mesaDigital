@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router";
 import {
   ChevronDownIcon,
   GridIcon,
+  ListIcon,
   HorizontaLDots,
   TableIcon,
 } from "../icons";
@@ -100,6 +101,9 @@ const AppSidebar: React.FC = () => {
     }
     if (role === "ADMIN" || role === "WAITER") {
       extra.push({ icon: <TableIcon />, name: "Mapa de mesas", path: "/mapa-mesas" });
+    }
+    if (role === "ADMIN" || role === "WAITER" || role === "CASHIER") {
+      extra.push({ icon: <ListIcon />, name: "Comandas", path: "/comandas" });
     }
     if (role === "ADMIN" || role === "CASHIER") {
       extra.push({
