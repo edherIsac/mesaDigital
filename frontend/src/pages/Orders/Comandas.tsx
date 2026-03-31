@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import OrderService from "./Order.service";
+import { SocketContext } from "../../context/SocketContext";
 import { Order } from "../../interfaces/Order.interface";
 import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
@@ -32,6 +33,8 @@ export default function Comandas() {
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
   const navigate = useNavigate();
+  const { socket } = useContext(SocketContext);
+  const pendingRef = useRef<Record<string, boolean>>({});
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -51,6 +54,70 @@ export default function Comandas() {
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Helper to fetch and upsert a single order into state (debounced per id)
+  const refreshOrder = async (orderId?: string) => {
+    if (!orderId) return;
+    if (pendingRef.current[orderId]) return;
+    pendingRef.current[orderId] = true;
+    try {
+      const ord = await OrderService.getOrder(orderId);
+      setOrders((prev) => {
+        const idx = prev.findIndex((p) => String(p._id ?? p.id) === String(ord._id ?? ord.id));
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = ord;
+          return copy;
+        }
+        return [ord, ...prev];
+      });
+    } catch (e) {
+      // ignore fetch errors — maybe order not accessible yet
+      // console.warn('Failed to refresh order', e);
+    } finally {
+      pendingRef.current[orderId] = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleCreated = (payload: any) => {
+      const id = payload?.orderId ?? payload?.orderId;
+      if (!id) return;
+      void refreshOrder(id);
+    };
+
+    const handleUpdated = (payload: any) => {
+      const id = payload?.orderId ?? payload?.orderId;
+      if (!id) return;
+      void refreshOrder(id);
+    };
+
+    const handleCancelled = (payload: any) => {
+      const id = payload?.orderId;
+      if (!id) return;
+      void refreshOrder(id);
+    };
+
+    const handleItemStatus = (payload: any) => {
+      const id = payload?.orderId;
+      if (!id) return;
+      void refreshOrder(id);
+    };
+
+    socket.on('order:created', handleCreated);
+    socket.on('order:updated', handleUpdated);
+    socket.on('order:cancelled', handleCancelled);
+    socket.on('item:statusChanged', handleItemStatus);
+
+    return () => {
+      socket.off('order:created', handleCreated);
+      socket.off('order:updated', handleUpdated);
+      socket.off('order:cancelled', handleCancelled);
+      socket.off('item:statusChanged', handleItemStatus);
+    };
+  }, [socket]);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
