@@ -20,6 +20,7 @@ import MesasConfig from "./pages/Admin/Mesas/MesasConfig";
 import MesaNew from "./pages/Admin/Mesas/MesaNew";
 import StartOrder from "./pages/Orders/StartOrder";
 import Comandas from "./pages/Orders/Comandas";
+import OrderDetails from "./pages/Orders/OrderDetails";
 import SystemAdmin from "./pages/Admin/SystemAdmin";
 import OrdersList from "./pages/Admin/Orders/OrdersList";
 
@@ -155,6 +156,13 @@ export default function App() {
             <RequireAuth>
               <RequireRole roles={["WAITER", "ADMIN"]}>
                 <StartOrder />
+              </RequireRole>
+            </RequireAuth>
+          } />
+          <Route path="order-details/:id" element={
+            <RequireAuth>
+              <RequireRole roles={["WAITER", "CASHIER", "ADMIN"]}>
+                <OrderDetails />
               </RequireRole>
             </RequireAuth>
           } />

@@ -14,6 +14,16 @@ export const normalizeStatus = (s?: string): string => {
     stRaw === 'ready for pickup'
   )
     return OrderStatus.PACKAGED;
+  if (
+    stRaw === 'awaiting_payment' ||
+    stRaw === 'awaiting-payment' ||
+    stRaw === 'awaiting payment' ||
+    stRaw === 'en_caja' ||
+    stRaw === 'encaja' ||
+    stRaw === 'en caja'
+  )
+    return OrderStatus.AWAITING_PAYMENT;
+  if (stRaw === 'paid' || stRaw === 'pagada' || stRaw === 'pagado') return OrderStatus.PAID;
   if (stRaw === 'delivered') return OrderStatus.DELIVERED;
   return stRaw;
 };
@@ -29,6 +39,8 @@ export const itemStatusLabel = (s?: string): string => {
   if (st === OrderStatus.SERVED) return 'Servido';
   if (st === OrderStatus.DELIVERED) return 'Entregado';
   if (st === OrderStatus.CANCELLED) return 'Cancelado';
+  if (st === OrderStatus.AWAITING_PAYMENT) return 'En espera de pago';
+  if (st === OrderStatus.PAID) return 'Pagada';
   if (st === OrderStatus.COMPLETED) return 'Completado';
   return st.charAt(0).toUpperCase() + st.slice(1);
 };
@@ -50,6 +62,10 @@ export const itemStatusClass = (s?: string): string => {
       return 'bg-gray-100 text-gray-700 dark:bg-gray-700/20 dark:text-gray-200';
     case OrderStatus.CANCELLED:
       return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300';
+    case OrderStatus.AWAITING_PAYMENT:
+      return 'bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-300';
+    case OrderStatus.PAID:
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300';
     default:
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
   }

@@ -9,6 +9,7 @@ import Label from "../../components/form/Label";
 import { itemStatusLabel, itemStatusClass } from "../../constants/statuses";
 import { OrderStatus, OrderStatusValues } from "../../constants/orderStatus";
 import { formatCurrency } from '../../utils/currency';
+import { resolveUserNames } from '../../utils/userCache';
 
 function SkeletonRow() {
   return (
@@ -42,6 +43,19 @@ export default function Comandas() {
     try {
       const data = await OrderService.getOrders();
       setOrders(Array.isArray(data) ? data : []);
+      try {
+        const ids = new Set<string>();
+        (Array.isArray(data) ? data : []).forEach((o: any) => {
+          if (o?.placedBy) ids.add(String(o.placedBy));
+          if (o?.paidBy) ids.add(String(o.paidBy));
+        });
+        if (ids.size > 0) {
+          const resolved = await resolveUserNames(Array.from(ids));
+          setUserNames((prev) => ({ ...prev, ...resolved }));
+        }
+      } catch (e) {
+        // ignore user name resolution errors
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg || 'Error cargando órdenes');
@@ -71,6 +85,18 @@ export default function Comandas() {
         }
         return [ord, ...prev];
       });
+      // resolve names for this order (placedBy / paidBy)
+      try {
+        const idsToResolve: string[] = [];
+        if ((ord as any)?.placedBy) idsToResolve.push(String((ord as any).placedBy));
+        if ((ord as any)?.paidBy) idsToResolve.push(String((ord as any).paidBy));
+        if (idsToResolve.length > 0) {
+          const resolved = await resolveUserNames(idsToResolve);
+          setUserNames((prev) => ({ ...prev, ...resolved }));
+        }
+      } catch (e) {
+        // ignore
+      }
     } catch (e) {
       // ignore fetch errors — maybe order not accessible yet
       // console.warn('Failed to refresh order', e);
@@ -78,6 +104,8 @@ export default function Comandas() {
       pendingRef.current[orderId] = false;
     }
   };
+
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!socket) return;
@@ -245,7 +273,7 @@ export default function Comandas() {
                 const peopleCount = Array.isArray(o.people) ? o.people.length : 0;
                 const totalVal = (o as any).total ?? (o as any).subtotal ?? 0;
                 return (
-                  <tr key={String(o._id ?? o.id)} className="border-t border-gray-100 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+                  <tr key={String(o._id ?? o.id)} className="border-t border-gray-100 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02] cursor-pointer">
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{o.orderNumber ?? (o._id ? String(o._id).slice(-6) : '—')}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{o.tableLabel ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{peopleCount}</td>
@@ -258,13 +286,13 @@ export default function Comandas() {
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       <div className="flex flex-col text-sm">
-                        <span>Mesero: {(o as any).placedBy ?? '—'}</span>
-                        <span>Cajero: {(o as any).paidBy ?? '—'}</span>
+                        <span>Mesero: {userNames[String((o as any).placedBy)] ?? ((o as any).placedBy ?? '—')}</span>
+                        <span>Cajero: {userNames[String((o as any).paidBy)] ?? ((o as any).paidBy ?? '—')}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => navigate(`/caja/detalles/${o._id}`)} className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50">Ver</button>
+                        <button onClick={() => navigate(`/order-details/${o._id}`)} className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50">Ver</button>
                       </div>
                     </td>
                   </tr>
