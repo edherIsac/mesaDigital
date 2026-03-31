@@ -173,9 +173,23 @@ export default function CajaDetails(): React.ReactElement {
     socket.on('item:statusChanged', handler);
     socket.on('order:updated', handler);
 
+    const redirectHandler = (payload: any) => {
+      const p = payload ?? {};
+      const orderId = p.orderId ?? (p.data && p.data.orderId) ?? null;
+      if (!orderId) return;
+      if (String(orderId) === String(id)) {
+        // If cashier has this order open and the waiter reverted it to preparing,
+        // navigate back to the caja list to avoid editing conflicts.
+        navigate('/caja');
+      }
+    };
+
+    socket.on('order:forceRedirectToCaja', redirectHandler);
+
     return () => {
       socket.off('item:statusChanged', handler);
       socket.off('order:updated', handler);
+      socket.off('order:forceRedirectToCaja', redirectHandler);
     };
   }, [socket, connected, id]);
 

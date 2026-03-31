@@ -602,13 +602,30 @@ export default function StartOrder() {
           setOrderStatus((created.status as OrderStatus) ?? OrderStatus.PENDING);
         }
       }
-      // After creating/updating, navigate back to orders list or table view
+      // After creating/updating, navigate back to previous view
       navigate(-1);
     } catch (err) {
       console.error("Error placing comanda:", err);
       // TODO: show UI error
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const handleStartAddingMore = async () => {
+    if (!mesa?.currentOrderId) {
+      alert.warning('La comanda debe estar creada antes de agregar productos.');
+      return;
+    }
+    try {
+      // Revert order to PREPARING so kitchen/FOH know items can be added
+      await OrderService.updateOrderStatus(String(mesa.currentOrderId), OrderStatus.PREPARING);
+      setOrderStatus(OrderStatus.PREPARING);
+      setRefreshKey((k) => k + 1);
+      alert.success('Comanda regresada a preparación — ahora puedes agregar más productos');
+    } catch (err) {
+      console.error('Failed to revert order to preparing', err);
+      alert.error('No se pudo regresar la comanda a preparación');
     }
   };
 
@@ -1025,16 +1042,31 @@ export default function StartOrder() {
                   >
                     Cancelar
                   </button>
-                  <button
-                    onClick={handlePlaceComanda}
-                    disabled={placing || (mesa?.currentOrderId && normalizeStatus(orderStatus) === OrderStatus.AWAITING_PAYMENT)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {placing ? 'Enviando...' : mesa?.currentOrderId ? 'Modificar comanda' : 'Colocar comanda'}
-                  </button>
+                  {/* Place / Modify button: show when creating or when order is NOT in AWAITING_PAYMENT (caja). */}
+                  {(!mesa?.currentOrderId || normalizeStatus(orderStatus) !== OrderStatus.AWAITING_PAYMENT) && (
+                    <button
+                      onClick={handlePlaceComanda}
+                      disabled={placing}
+                      className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {placing ? 'Enviando...' : mesa?.currentOrderId ? 'Modificar comanda' : 'Colocar comanda'}
+                    </button>
+                  )}
+
+                  {/* When order is in caja, show 'Agregar mas productos' button (this will revert order to PREPARING). */}
+                  {mesa?.currentOrderId && normalizeStatus(orderStatus) === OrderStatus.AWAITING_PAYMENT && (
+                    <button
+                      onClick={handleStartAddingMore}
+                      disabled={completing}
+                      className="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-600 transition-colors disabled:opacity-50"
+                    >
+                      Agregar mas productos
+                    </button>
+                  )}
+
                   {mesa?.currentOrderId && normalizeStatus(orderStatus) !== OrderStatus.AWAITING_PAYMENT && (
                     <button
                       onClick={handleSendToCaja}
@@ -1044,6 +1076,7 @@ export default function StartOrder() {
                       {completing ? 'Enviando...' : 'Enviar a caja'}
                     </button>
                   )}
+
                   {mesa?.currentOrderId && normalizeStatus(orderStatus) === OrderStatus.AWAITING_PAYMENT && (
                     <div className="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700">
                       Enviada a caja

@@ -742,6 +742,32 @@ export class OrdersService {
 
     await doc.save();
 
+    // If the order was reverted from AWAITING_PAYMENT back to PREPARING,
+    // instruct any cashier clients that may have this order open to
+    // navigate back to the caja list to avoid concurrent edits.
+    try {
+      const wasAwaiting =
+        String(oldStatus || '').toLowerCase() ===
+        String(OrderStatus.AWAITING_PAYMENT).toLowerCase();
+      const isPreparing =
+        String(doc.status || '').toLowerCase() ===
+        String(OrderStatus.PREPARING).toLowerCase();
+      if (wasAwaiting && isPreparing) {
+        this.socketService.emitToRoles(
+          ['CASHIER'],
+          'order:forceRedirectToCaja',
+          {
+            orderId: String(doc._id),
+          },
+        );
+      }
+    } catch (e) {
+      console.warn(
+        'Failed to notify cashiers to redirect after reverting order to preparing',
+        e,
+      );
+    }
+
     // Notify about items/people being added to existing order (for KDS refresh)
     if (itemsAdded || peopleAdded) {
       this.notifyOrderEvent(
