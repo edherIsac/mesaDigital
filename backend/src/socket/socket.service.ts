@@ -37,11 +37,15 @@ export class SocketService {
         return;
       }
       const uniqRooms = Array.from(new Set((rooms || []).filter(Boolean)));
-      let broadcaster: any = this.getServer();
+      // Emit to each room separately (union) instead of chaining .to() which
+      // would broadcast only to sockets present in all rooms (intersection).
       for (const r of uniqRooms) {
-        broadcaster = broadcaster.to(r);
+        try {
+          this.getServer().to(r).emit(event, payload);
+        } catch (err) {
+          this.logger.debug(`Failed emit to room ${r}: ${String(err)}`);
+        }
       }
-      broadcaster.emit(event, payload);
     } catch (e) {
       this.logger.warn(`Failed emit to rooms ${rooms}: ${String(e)}`);
     }

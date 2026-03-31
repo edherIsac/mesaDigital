@@ -1027,7 +1027,7 @@ export default function StartOrder() {
                   </button>
                   <button
                     onClick={handlePlaceComanda}
-                    disabled={placing}
+                    disabled={placing || (mesa?.currentOrderId && normalizeStatus(orderStatus) === OrderStatus.AWAITING_PAYMENT)}
                     className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors disabled:opacity-50"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
