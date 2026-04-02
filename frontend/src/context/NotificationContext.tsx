@@ -5,6 +5,8 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useRef,
+  useCallback,
 } from "react";
 import { SocketContext } from "./SocketContext";
 
@@ -40,15 +42,15 @@ export const NotificationProvider = ({
   children,
 }: PropsWithChildren<unknown>) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [lastNotifId, setLastNotifId] = useState<string | null>(null);
+  const lastNotifIdRef = useRef<string | null>(null);
   const { socket, connected } = useContext(SocketContext);
 
-  const addNotification = (n: Partial<Notification>, fromEvent?: string) => {
+  const addNotification = useCallback((n: Partial<Notification>, fromEvent?: string) => {
     // Generate or use existing id for deduplication
     const notifId = n.id ?? `${fromEvent ?? 'notif'}-${Date.now()}`;
     
     // Skip if this is the same notification we just added (within 1 second)
-    if (lastNotifId && notifId === lastNotifId) {
+    if (lastNotifIdRef.current && notifId === lastNotifIdRef.current) {
       return;
     }
     // Play a short notification sound using WebAudio API (no asset required).
@@ -95,11 +97,13 @@ export const NotificationProvider = ({
       createdAt: n.createdAt ?? Date.now(),
     };
     setNotifications((prev) => [notif, ...prev]);
-    setLastNotifId(notifId);
-    
+    lastNotifIdRef.current = notifId;
+
     // Clear the deduplication id after 1 second
-    setTimeout(() => setLastNotifId(null), 1000);
-  };
+    setTimeout(() => {
+      lastNotifIdRef.current = null;
+    }, 1000);
+  }, [setNotifications]);
 
   const markRead = (id: string) => {
     setNotifications((prev) =>

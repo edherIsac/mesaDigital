@@ -290,10 +290,10 @@ export default function OrderDetails() {
                 })}
               </div>
 
-              <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
-                <div>
+              <div className="shrink-0 flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
+                <div className="text-right">
                   <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
-                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{formatCurrency(totals.total, DEFAULT_CURRENCY)}</div>
+                  <div className="text-2xl font-bold text-gray-800 dark:text-white/90">{formatCurrency(totals.total, DEFAULT_CURRENCY)}</div>
                 </div>
               </div>
             </div>

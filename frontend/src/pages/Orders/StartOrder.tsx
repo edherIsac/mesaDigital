@@ -1030,11 +1030,7 @@ export default function StartOrder() {
 
               {/* ── Footer ─────────────────────────────────────── */}
               {/* Alerts shown via global AlertProvider */}
-              <div className="shrink-0 flex items-center justify-between gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
-                <div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
-                  <div className="text-lg font-bold text-gray-800 dark:text-white/90">{formatCurrency(comanda.totals.total, comanda.currency ?? DEFAULT_CURRENCY)}</div>
-                </div>
+              <div className="shrink-0 flex items-center justify-end gap-4 border-t border-gray-100 dark:border-white/[0.05] pt-3 mt-1">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowCancelConfirm(true)}
@@ -1082,6 +1078,10 @@ export default function StartOrder() {
                       Enviada a caja
                     </div>
                   )}
+                </div>
+                <div className="ml-4 text-right">
+                  <div className="text-xs text-gray-400 dark:text-gray-500">Total comanda</div>
+                  <div className="text-2xl font-bold text-gray-800 dark:text-white/90">{formatCurrency(comanda.totals.total, comanda.currency ?? DEFAULT_CURRENCY)}</div>
                 </div>
               </div>
             </div>

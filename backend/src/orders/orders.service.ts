@@ -38,6 +38,16 @@ interface OrderPerson {
   seat?: number;
 }
 
+// Minimal typed shape for Mongo/Mongoose errors relevant to transaction support checks
+interface MongoTransactionError {
+  code?: number;
+  message?: string;
+}
+
+function isMongoTransactionError(e: unknown): e is MongoTransactionError {
+  return typeof e === 'object' && e !== null && ('code' in e || 'message' in e);
+}
+
 // interface ItemSnapshot {
 //   itemId: string;
 //   name?: string;
@@ -430,7 +440,7 @@ export class OrdersService {
       // If transactions are not supported on this server (common in local dev single-node),
       // fall back to a best-effort non-transactional flow: create order, then update table.
       const isTransactionNotSupported =
-        err &&
+        isMongoTransactionError(err) &&
         (err.code === 20 ||
           (typeof err.message === 'string' &&
             err.message.includes('Transaction numbers are only allowed')));

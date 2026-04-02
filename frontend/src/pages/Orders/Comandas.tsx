@@ -14,9 +14,9 @@ import { resolveUserNames } from '../../utils/userCache';
 function SkeletonRow() {
   return (
     <tr className="border-t border-gray-100 dark:border-gray-800 animate-pulse">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
+      {[1, 2, 3, 4, 5, 6, 7].map((i) => (
         <td key={i} className="px-4 py-3">
-          <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" style={{ width: `${40 + i * 10}%` }} />
+          <div className="h-4 rounded bg-gray-200 dark:bg-gray-700" style={{ width: `${40 + i * 8}%` }} />
         </td>
       ))}
     </tr>
@@ -249,7 +249,6 @@ export default function Comandas() {
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Mesero / Cajero</th>
-                <th className="px-4 py-3">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -257,7 +256,7 @@ export default function Comandas() {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400 dark:text-gray-300">
+                  <td colSpan={7} className="px-4 py-10 text-center text-gray-400 dark:text-gray-300">
                     <div className="flex flex-col items-center gap-2">
                       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="opacity-40">
                         <path d="M12 2a10 10 0 100 20 10 10 0 000-20z" stroke="currentColor" strokeWidth="1.5" />
@@ -273,7 +272,14 @@ export default function Comandas() {
                 const peopleCount = Array.isArray(o.people) ? o.people.length : 0;
                 const totalVal = (o as any).total ?? (o as any).subtotal ?? 0;
                 return (
-                  <tr key={String(o._id ?? o.id)} className="border-t border-gray-100 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02] cursor-pointer">
+                  <tr
+                    key={String(o._id ?? o.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { navigate(`/order-details/${o._id}`); } }}
+                    onClick={() => navigate(`/order-details/${o._id}`)}
+                    className="border-t border-gray-100 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02] cursor-pointer"
+                  >
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{o.orderNumber ?? (o._id ? String(o._id).slice(-6) : '—')}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{o.tableLabel ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{peopleCount}</td>
@@ -288,11 +294,6 @@ export default function Comandas() {
                       <div className="flex flex-col text-sm">
                         <span>Mesero: {userNames[String((o as any).placedBy)] ?? ((o as any).placedBy ?? '—')}</span>
                         <span>Cajero: {userNames[String((o as any).paidBy)] ?? ((o as any).paidBy ?? '—')}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => navigate(`/order-details/${o._id}`)} className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50">Ver</button>
                       </div>
                     </td>
                   </tr>
